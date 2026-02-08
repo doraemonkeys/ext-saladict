@@ -2,19 +2,21 @@
  * Open pdf link directly
  */
 
-import { AppConfig } from '@/app-config'
 import { addConfigListener } from '@/_helpers/config-manager'
 import { openUrl } from '@/_helpers/browser-api'
+import { getAppConfig } from './state'
 
-export function init(config: AppConfig) {
-  if (browser.webRequest.onBeforeRequest.hasListener(otherPdfListener)) {
-    return
-  }
+/**
+ * MV3: Register webRequest listeners synchronously at the top level so they
+ * survive service-worker restarts. The actual handlers guard on
+ * `getAppConfig()?.pdfSniff` at runtime, so they are no-ops until config is
+ * loaded and only act when PDF sniffing is enabled.
+ */
+export function init() {
+  // Always register listeners synchronously (MV3 requirement).
+  startListening()
 
-  if (config.pdfSniff) {
-    startListening()
-  }
-
+  // Dynamically start/stop listeners when the user toggles pdfSniff.
   addConfigListener(({ newConfig, oldConfig }) => {
     if (newConfig) {
       if (!oldConfig || newConfig.pdfSniff !== oldConfig.pdfSniff) {
@@ -42,7 +44,7 @@ export async function openPDF(url?: string, force?: boolean) {
     if (tabs.length > 0 && tabs[0].url) {
       const curURL = tabs[0].url
       if (curURL.startsWith(pdfURL)) {
-        if (window.appConfig.pdfStandalone) {
+        if (getAppConfig().pdfStandalone) {
           if (tabs[0].id != null) {
             await browser.tabs.remove(tabs[0].id)
           }
@@ -56,7 +58,7 @@ export async function openPDF(url?: string, force?: boolean) {
     }
   }
 
-  return window.appConfig.pdfStandalone
+  return getAppConfig().pdfStandalone
     ? openPDFStandalone(pdfURL)
     : openUrl({ url: pdfURL, unique: false })
 }
@@ -81,8 +83,8 @@ function startListening() {
           'file://*/*.PDF'
         ],
         types: ['main_frame', 'sub_frame']
-      },
-      ['blocking']
+      }
+      // MV3: no 'blocking' — listener is non-blocking
     )
   }
 
@@ -93,7 +95,8 @@ function startListening() {
         urls: ['https://*/*', 'https://*/*', 'http://*/*', 'http://*/*'],
         types: ['main_frame', 'sub_frame']
       },
-      ['blocking', 'responseHeaders']
+      ['responseHeaders']
+      // MV3: removed 'blocking' — listener is non-blocking
     )
   }
 }
@@ -109,10 +112,13 @@ function otherPdfListener({
 }: Parameters<
   Parameters<typeof browser.webRequest.onBeforeRequest.removeListener>[0]
 >[0]) {
+  const config = getAppConfig()
+  if (!config || !config.pdfSniff) return
+
   const matchURL = ([r]: ReadonlyArray<string>) => new RegExp(r).test(url)
   if (
-    window.appConfig.pdfBlacklist.some(matchURL) &&
-    !window.appConfig.pdfWhitelist.some(matchURL)
+    config.pdfBlacklist.some(matchURL) &&
+    !config.pdfWhitelist.some(matchURL)
   ) {
     return
   }
@@ -121,13 +127,17 @@ function otherPdfListener({
     `assets/pdf/web/viewer.html?file=${encodeURIComponent(url)}`
   )
 
-  if (tabId !== -1 && window.appConfig.pdfStandalone === 'always') {
-    browser.tabs.remove(tabId)
+  // MV3: non-blocking — use async tabs.update instead of returning redirectUrl
+  if (tabId !== -1 && config.pdfStandalone === 'always') {
+    // Stop current tab and open standalone window
+    chrome.tabs.update(tabId, { url: 'about:blank' })
     openPDFStandalone(redirectUrl)
-    return { cancel: true }
+    return
   }
 
-  return { redirectUrl }
+  if (tabId !== -1) {
+    chrome.tabs.update(tabId, { url: redirectUrl })
+  }
 }
 
 function httpPdfListener({
@@ -140,10 +150,13 @@ function httpPdfListener({
   if (!responseHeaders) {
     return
   }
+  const config = getAppConfig()
+  if (!config || !config.pdfSniff) return
+
   const matchURL = ([r]: ReadonlyArray<string>) => new RegExp(r).test(url)
   if (
-    window.appConfig.pdfBlacklist.some(matchURL) &&
-    !window.appConfig.pdfWhitelist.some(matchURL)
+    config.pdfBlacklist.some(matchURL) &&
+    !config.pdfWhitelist.some(matchURL)
   ) {
     return
   }
@@ -161,13 +174,17 @@ function httpPdfListener({
         `assets/pdf/web/viewer.html?file=${encodeURIComponent(url)}`
       )
 
-      if (tabId !== -1 && window.appConfig.pdfStandalone === 'always') {
-        browser.tabs.remove(tabId)
+      // MV3: non-blocking — use async tabs.update instead of returning redirectUrl
+      if (tabId !== -1 && config.pdfStandalone === 'always') {
+        // Stop current tab and open standalone window
+        chrome.tabs.update(tabId, { url: 'about:blank' })
         openPDFStandalone(redirectUrl)
-        return { cancel: true }
+        return
       }
 
-      return { redirectUrl }
+      if (tabId !== -1) {
+        chrome.tabs.update(tabId, { url: redirectUrl })
+      }
     }
   }
 }

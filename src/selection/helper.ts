@@ -83,17 +83,19 @@ export async function newSelectionWord(
   word: Partial<Word> = {}
 ): Promise<Word> {
   const info = await message.send<'PAGE_INFO'>({ type: 'PAGE_INFO' })
-  window.faviconURL = info.faviconURL
-  if (info.pageTitle) {
-    window.pageTitle = info.pageTitle
-  }
-  if (info.pageURL) {
-    window.pageURL = info.pageURL
+  if (info) {
+    window.faviconURL = info.faviconURL
+    if (info.pageTitle) {
+      window.pageTitle = info.pageTitle
+    }
+    if (info.pageURL) {
+      window.pageURL = info.pageURL
+    }
   }
   return newWord({
-    title: info.pageTitle || document.title || '',
-    url: info.pageURL || document.URL || '',
-    favicon: info.faviconURL || '',
+    title: (info && info.pageTitle) || document.title || '',
+    url: (info && info.pageURL) || document.URL || '',
+    favicon: (info && info.faviconURL) || '',
     ...word
   })
 }

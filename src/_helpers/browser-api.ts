@@ -45,6 +45,20 @@ const noop = () => {
 }
 
 /**
+ * Module-level pageId to replace window.pageId.
+ * Service Workers have no `window` object, so we use a module variable instead.
+ */
+let _pageId: string | number | undefined
+
+export function getPageId() {
+  return _pageId
+}
+
+export function setPageId(id: string | number) {
+  _pageId = id
+}
+
+/**
  * key: {function} user's callback function
  * values: {Map} listeners, key: message type, values: generated or user's callback functions
  */
@@ -364,13 +378,13 @@ async function messageSendSelf<T extends MsgType, R = undefined>(
     callContext = new Error('Message Call Context')
   }
 
-  if (window.pageId === undefined) {
+  if (_pageId === undefined) {
     await initClient()
   }
   return browser.runtime
     .sendMessage(
       Object.assign({}, message, {
-        __pageId__: window.pageId,
+        __pageId__: _pageId,
         type: `[[${message.type}]]`
       })
     )
@@ -392,7 +406,7 @@ function messageAddListener<T extends MsgType>(
   this: MessageThis,
   ...args: [T, onMessageEvent<Message<T>>] | [onMessageEvent<Message>]
 ): void {
-  if (window.pageId === undefined) {
+  if (_pageId === undefined) {
     initClient()
   }
   const allListeners = this.__self__ ? messageSelfListeners : messageListeners
@@ -408,9 +422,7 @@ function messageAddListener<T extends MsgType>(
     listener = ((message, sender) => {
       if (
         message &&
-        (this.__self__
-          ? window.pageId === message.__pageId__
-          : !message.__pageId__)
+        (this.__self__ ? _pageId === message.__pageId__ : !message.__pageId__)
       ) {
         if (messageType == null || message.type === messageType) {
           return cb(message as Message<T> & { __pageId__?: string }, sender)
@@ -486,24 +498,49 @@ function messageCreateStream<T extends MsgType>(
  * Deploy page script for self-messaging
  * This method is called on the first sendMessage
  */
-function initClient(): Promise<typeof window.pageId> {
-  if (window.pageId === undefined) {
-    return message
-      .send<'PAGE_INFO'>({ type: 'PAGE_INFO' })
-      .then(({ pageId, faviconURL, pageTitle, pageURL }) => {
-        window.pageId = pageId
-        window.faviconURL = faviconURL
-        if (pageTitle) {
-          window.pageTitle = pageTitle
-        }
-        if (pageURL) {
-          window.pageURL = pageURL
+function initClient(): Promise<string | number | undefined> {
+  if (_pageId !== undefined) {
+    return Promise.resolve(_pageId)
+  }
+  return _requestPageInfoWithRetry()
+}
+
+async function _requestPageInfoWithRetry(
+  retries = 5,
+  delay = 100
+): Promise<string | number | undefined> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await browser.runtime.sendMessage({ type: 'PAGE_INFO' })
+      if (response && typeof response === 'object' && 'pageId' in response) {
+        const { pageId, faviconURL, pageTitle, pageURL } = response
+        _pageId = pageId
+        if (typeof window !== 'undefined') {
+          window.faviconURL = faviconURL
+          if (pageTitle) {
+            window.pageTitle = pageTitle
+          }
+          if (pageURL) {
+            window.pageURL = pageURL
+          }
         }
         return pageId
-      })
-  } else {
-    return Promise.resolve(window.pageId)
+      }
+    } catch (err) {
+      if (process.env.DEBUG) {
+        console.warn('initClient attempt', i + 1, err)
+      }
+    }
+    // Background service worker not ready yet, wait and retry
+    if (i < retries - 1) {
+      await new Promise(resolve => setTimeout(resolve, delay))
+      delay *= 2
+    }
   }
+  if (process.env.DEBUG) {
+    console.warn('initClient: failed to get PAGE_INFO after retries')
+  }
+  return undefined
 }
 
 /**
@@ -511,7 +548,7 @@ function initClient(): Promise<typeof window.pageId> {
  * This method should be invoked in background script
  */
 function initServer(): void {
-  window.pageId = 'background page'
+  setPageId('background page')
   const selfMsgTester = /^\[\[(.+)\]\]$/
 
   browser.runtime.onMessage.addListener(

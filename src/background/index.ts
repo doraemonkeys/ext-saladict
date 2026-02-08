@@ -13,7 +13,13 @@ import { BackgroundServer } from './server'
 import { initBadge } from './badge'
 import { setupCaiyunTrsBackend } from './page-translate/caiyun'
 import { setupRequestGAListener } from '@/_helpers/analytics'
-import './types'
+import {
+  setAppConfig,
+  setActiveProfile,
+  setProfileIDList,
+  restoreStateFromSession,
+  saveStateToSession
+} from './state'
 
 // init first to recevice self messaging
 message.self.initServer()
@@ -27,20 +33,38 @@ setupCaiyunTrsBackend()
 
 setupRequestGAListener()
 
-getConfig().then(async config => {
-  window.appConfig = config
-  initPdf(config)
-  initBadge()
+// ---------------------------------------------------------------------------
+// MV3: Register event listeners synchronously at the top level so they
+// survive service-worker restarts.  Handlers read config from state at
+// runtime rather than capturing a config parameter at registration time.
+// ---------------------------------------------------------------------------
+initPdf()
+initBadge()
+addConfigListener(({ newConfig }) => {
+  setAppConfig(newConfig)
+  saveStateToSession()
+})
 
-  addConfigListener(({ newConfig }) => {
-    window.appConfig = newConfig
-  })
+// ---------------------------------------------------------------------------
+// MV3: Restore persisted state from session storage as early as possible so
+// that event handlers firing before getConfig() resolves have cached config.
+// ---------------------------------------------------------------------------
+restoreStateFromSession()
+
+// ---------------------------------------------------------------------------
+// Async config / profile loading (source of truth from extension storage)
+// ---------------------------------------------------------------------------
+getConfig().then(config => {
+  setAppConfig(config)
+  saveStateToSession()
 })
 
 createActiveProfileStream().subscribe(profile => {
-  window.activeProfile = profile
+  setActiveProfile(profile)
+  saveStateToSession()
 })
 
 createProfileIDListStream().subscribe(list => {
-  window.profileIDList = list
+  setProfileIDList(list)
+  saveStateToSession()
 })

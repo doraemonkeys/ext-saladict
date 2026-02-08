@@ -1,7 +1,9 @@
 {
   "json.schemas": [
     {
-      "fileMatch": ["src/components/dictionaries/**/_locales.json"],
+      "fileMatch": [
+        "src/components/dictionaries/**/_locales.json"
+      ],
       "url": ".vscode/locales.schema.json"
     }
   ],
@@ -27,5 +29,8 @@
     "selecion",
     "sync-services",
     "word-editor"
+  ],
+  "i18n-ally.localesPaths": [
+    "assets/pdf/web/locale"
   ]
 }

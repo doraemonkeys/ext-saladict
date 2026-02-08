@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual'
 import { createConfigStream } from '@/_helpers/config-manager'
 import { isFirefox } from '@/_helpers/saladict'
 import { reportEvent } from '@/_helpers/analytics'
-import './types'
+import { getAppConfig } from './state'
 
 import { TFunction } from 'i18next'
 import { I18nManager } from './i18n-manager'
@@ -59,25 +59,39 @@ export class ContextMenus {
 
   static init = ContextMenus.getInstance
 
-  static openGoogle() {
-    return tryExecuteScript(
-      { file: '/assets/google-page-trans.js' },
-      'google_page_translate'
-    )
+  static async openGoogle() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (tab?.id) {
+      return tryExecuteScript(
+        tab.id,
+        { files: ['/assets/google-page-trans.js'] },
+        'google_page_translate'
+      )
+    }
   }
 
-  static openCaiyunTrs() {
+  static async openCaiyunTrs() {
     // FF policy
     if (isFirefox) return
-    return tryExecuteScript({ file: '/assets/trs.js' }, 'caiyuntrs')
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (tab?.id) {
+      return tryExecuteScript(
+        tab.id,
+        { files: ['/assets/trs.js'] },
+        'caiyuntrs'
+      )
+    }
   }
 
   static async openYoudao() {
     // FF policy
     if (isFirefox) return
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab?.id) return
     // inject youdao script, defaults to the active tab of the current window.
     const result = await tryExecuteScript(
-      { file: '/assets/fanyi.youdao.2.0/main.js' },
+      tab.id,
+      { files: ['/assets/fanyi.youdao.2.0/main.js'] },
       'youdao_page_translate'
     )
     if (!result || ((result as any) !== 1 && result[0] !== 1)) {
@@ -97,9 +111,9 @@ export class ContextMenus {
     browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
       if (tabs.length > 0 && tabs[0].url) {
         const langCode =
-          window.appConfig.langCode === 'zh-CN'
+          getAppConfig().langCode === 'zh-CN'
             ? 'zh'
-            : window.appConfig.langCode === 'zh-TW'
+            : getAppConfig().langCode === 'zh-TW'
             ? 'cht'
             : 'en'
         openUrl(
@@ -114,7 +128,7 @@ export class ContextMenus {
   static openSogouPage() {
     browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
       if (tabs.length > 0 && tabs[0].url) {
-        const langCode = window.appConfig.langCode === 'zh-CN' ? 'zh-CHS' : 'en'
+        const langCode = getAppConfig().langCode === 'zh-CN' ? 'zh-CHS' : 'en'
         openUrl(
           `https://translate.sogoucdn.com/pcvtsnapshot?from=auto&to=${langCode}&tfr=translatepc&url=${encodeURIComponent(
             tabs[0].url as string
@@ -128,9 +142,9 @@ export class ContextMenus {
     browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
       if (tabs.length > 0 && tabs[0].url) {
         const langCode =
-          window.appConfig.langCode === 'zh-CN'
+          getAppConfig().langCode === 'zh-CN'
             ? 'zh-Hans'
-            : window.appConfig.langCode === 'zh-TW'
+            : getAppConfig().langCode === 'zh-TW'
             ? 'zh-Hant'
             : 'en'
         openUrl(
@@ -200,7 +214,7 @@ export class ContextMenus {
         break
       default:
         {
-          const item = window.appConfig.contextMenus.all[menuItemId]
+          const item = getAppConfig().contextMenus.all[menuItemId]
           if (item) {
             const url = typeof item === 'string' ? item : item.url
             if (url) {
@@ -313,14 +327,14 @@ export class ContextMenus {
     await createContextMenu({
       id: 'view_as_pdf_ba',
       title: t('view_as_pdf'),
-      contexts: ['browser_action', 'page_action']
+      contexts: ['action']
     })
 
     if (browserActionItems.length > 2) {
       await createContextMenu({
         id: 'saladict_ba_container',
         title: t('page_translations'),
-        contexts: ['browser_action', 'page_action']
+        contexts: ['action']
       })
 
       for (const id of browserActionItems) {
@@ -328,7 +342,7 @@ export class ContextMenus {
           id: id + '_ba',
           parentId: 'saladict_ba_container',
           title: getTitle(id),
-          contexts: ['browser_action', 'page_action']
+          contexts: ['action']
         })
       }
     } else if (browserActionItems.length > 0) {
@@ -336,7 +350,7 @@ export class ContextMenus {
         await createContextMenu({
           id: id + '_ba',
           title: getTitle(id),
-          contexts: ['browser_action', 'page_action']
+          contexts: ['action']
         })
       }
     } else {
@@ -344,19 +358,19 @@ export class ContextMenus {
       await createContextMenu({
         id: 'google_cn_page_translate_ba',
         title: t('google_cn_page_translate'),
-        contexts: ['browser_action', 'page_action']
+        contexts: ['action']
       })
       await createContextMenu({
         id: 'youdao_page_translate_ba',
         title: t('youdao_page_translate'),
-        contexts: ['browser_action', 'page_action']
+        contexts: ['action']
       })
     }
 
     await createContextMenu({
       type: 'separator',
       id: Date.now().toString(),
-      contexts: ['browser_action']
+      contexts: ['action']
     })
 
     if (searchHistory) {
@@ -364,7 +378,7 @@ export class ContextMenus {
       await createContextMenu({
         id: 'search_history',
         title: t('history_title'),
-        contexts: ['browser_action']
+        contexts: ['action']
       })
     }
 
@@ -372,7 +386,7 @@ export class ContextMenus {
     await createContextMenu({
       id: 'notebook',
       title: t('notebook_title'),
-      contexts: ['browser_action']
+      contexts: ['action']
     })
 
     function getTitle(id: string): string {
@@ -396,11 +410,16 @@ export class ContextMenus {
 }
 
 async function tryExecuteScript(
-  details: browser.extensionTypes.InjectDetails,
+  tabId: number,
+  details: { files: string[] },
   nameKey: string
 ) {
   try {
-    return await browser.tabs.executeScript(details)
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      ...details
+    })
+    return results
   } catch (error) {
     const { i18n } = await I18nManager.getInstance()
     await browser.notifications.create({

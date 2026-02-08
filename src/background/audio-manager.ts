@@ -1,7 +1,11 @@
 import { timer } from '@/_helpers/promise-more'
+import { sendOffscreenMessage } from '@/offscreen/lifecycle'
 
 /**
- * To make sure only one audio plays at a time
+ * To make sure only one audio plays at a time.
+ *
+ * MV3: Audio playback is delegated to the offscreen document
+ * since Service Workers have no access to HTMLAudioElement / Audio API.
  */
 export class AudioManager {
   private static instance: AudioManager
@@ -14,43 +18,25 @@ export class AudioManager {
   // eslint-disable-next-line no-useless-constructor
   private constructor() {}
 
-  private audio?: HTMLAudioElement
-
   currentSrc?: string
 
-  reset() {
-    if (this.audio) {
-      this.audio.pause()
-      this.audio.currentTime = 0
-      this.audio.src = ''
-      this.audio.onended = null
-    }
+  async reset() {
+    await sendOffscreenMessage({ type: 'STOP_AUDIO' })
     this.currentSrc = ''
-  }
-
-  load(src: string): HTMLAudioElement {
-    this.reset()
-    this.currentSrc = src
-    return (this.audio = new Audio(src))
   }
 
   async play(src?: string): Promise<void> {
     if (!src || src === this.currentSrc) {
-      this.reset()
+      await this.reset()
       return
     }
 
-    const audio = this.load(src)
+    this.currentSrc = src
 
-    const onEnd = Promise.race([
-      new Promise(resolve => {
-        audio.onended = resolve
-      }),
-      timer(20000)
-    ])
+    // Fire-and-forget the play request; use a timeout as a safety net
+    const playResult = sendOffscreenMessage({ type: 'PLAY_AUDIO', url: src })
 
-    await audio.play()
-    await onEnd
+    await Promise.race([playResult, timer(20000)])
 
     this.currentSrc = ''
   }

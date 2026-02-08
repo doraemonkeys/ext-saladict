@@ -7,7 +7,7 @@
     "start": "webpack-dev-server --mode development --open --debug",
     "storybook": "start-storybook",
     "build": "webpack --mode production",
-    "postbuild": "node scripts/firefox-fix.js",
+    "postbuild": "node scripts/firefox-fix.js && node scripts/chrome-mv3-fix.js",
     "devbuild": "webpack --mode development",
     "type-check": "tsc --noEmit",
     "test": "jest --testTimeout 20000",
@@ -61,7 +61,7 @@
     "@opentranslate/youdao": "^1.4.0",
     "@types/classnames": "^2.2.10",
     "@types/dompurify": "0.0.32",
-    "@types/firefox-webext-browser": "^67.0.2",
+    "@types/firefox-webext-browser": "^120.0.4",
     "@types/i18next": "^12.1.0",
     "@types/lodash": "^4.14.136",
     "@types/react": "^16.8.23",
@@ -85,6 +85,7 @@
     "lodash": "^4.17.21",
     "md5": "^2.2.1",
     "memoize-one": "^5.1.0",
+    "node-html-parser": "^7.0.2",
     "normalize-scss": "^7.0.1",
     "observable-hooks": "^3.0.0",
     "pako": "^1.0.10",
@@ -112,7 +113,7 @@
     "utility-types": "^3.7.0",
     "uuid": "^3.4.0",
     "wavesurfer.js": "3.0.0",
-    "webextension-polyfill": "^0.6.0"
+    "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.8.3",

@@ -21,8 +21,25 @@ import Notebook from './Notebook'
 import './_style.scss'
 
 // This is a workaround for browser action page
-// which does not fire beforeunload event
-browser.runtime.connect({ name: 'popup' } as any) // wrong typing
+// which does not fire beforeunload event.
+// In MV3 the service worker may not be alive when the popup opens,
+// so we retry the connection with exponential backoff.
+;(function connectPopupPort(retries = 5, delay = 200) {
+  try {
+    const port = browser.runtime.connect({ name: 'popup' } as any)
+    port.onDisconnect.addListener(() => {
+      // Reading lastError clears the "Unchecked runtime.lastError" warning
+      const lastError = browser.runtime.lastError
+      if (lastError && retries > 0) {
+        setTimeout(() => connectPopupPort(retries - 1, delay * 2), delay)
+      }
+    })
+  } catch (_err) {
+    if (retries > 0) {
+      setTimeout(() => connectPopupPort(retries - 1, delay * 2), delay)
+    }
+  }
+})()
 
 const Title: FC = () => {
   const { t } = useTranslate('popup')

@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { Word } from '@/_helpers/record-manager'
 import { parseCtxText } from '@/_helpers/translateCtx'
 import { AddConfig, SyncService } from '../../interface'
@@ -205,16 +204,21 @@ export class Service extends SyncService<SyncConfig> {
   }
 
   async request<R = void>(action: string, params?: any): Promise<R> {
-    const { data } = await axios({
-      method: 'post',
-      url: `http://${this.config.host}:${this.config.port}`,
-      data: {
-        key: this.config.key || null,
-        version: 6,
-        action,
-        params: params || {}
+    const response = await fetch(
+      `http://${this.config.host}:${this.config.port}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: this.config.key || null,
+          version: 6,
+          action,
+          params: params || {}
+        })
       }
-    })
+    )
+
+    const data = await response.json()
 
     if (process.env.DEBUG) {
       console.log(`Anki Connect ${action} response`, data)
@@ -319,7 +323,7 @@ export class Service extends SyncService<SyncConfig> {
     text = text.trim()
     if (!text) return ''
     if (escape) {
-      text = this.escapeHTML(text)
+      text = escapeHTML(text)
     }
     return text.trim().replace(/\n/g, '<br/>')
   }
@@ -345,16 +349,6 @@ export class Service extends SyncService<SyncConfig> {
       .join(`<div class="trans">${trans}</div>`)
   }
 
-  private _div: HTMLElement | undefined
-  escapeHTML(text: string): string {
-    if (!this._div) {
-      this._div = document.createElement('div')
-      this._div.appendChild(document.createTextNode(''))
-    }
-    this._div.firstChild!.nodeValue = text
-    return this._div.innerHTML
-  }
-
   extractTags(): string[] {
     return this.config.tags
       .split(/,|，/)
@@ -372,6 +366,18 @@ export class Service extends SyncService<SyncConfig> {
       return false
     }
   }
+}
+
+/**
+ * Pure string-based HTML escaping (no DOM required).
+ */
+function escapeHTML(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
 }
 
 function cardText(front: boolean, nf: string[]) {

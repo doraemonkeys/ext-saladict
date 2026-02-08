@@ -6,21 +6,17 @@ export async function injectDictPanel(tab: browser.tabs.Tab | undefined) {
       for (const script of manifest.content_scripts) {
         if (script.js) {
           for (const js of script.js) {
-            await browser.tabs.executeScript(tabId, {
-              file: js[0] === '/' ? js : `/${js}`,
-              allFrames: script.all_frames,
-              matchAboutBlank: script.match_about_blank,
-              runAt: script.run_at
+            await chrome.scripting.executeScript({
+              target: { tabId, allFrames: script.all_frames },
+              files: [js[0] === '/' ? js : `/${js}`]
             })
           }
         }
         if (script.css) {
           for (const css of script.css) {
-            await browser.tabs.insertCSS(tabId, {
-              file: css[0] === '/' ? css : `/${css}`,
-              allFrames: script.all_frames,
-              matchAboutBlank: script.match_about_blank,
-              runAt: script.run_at
+            await chrome.scripting.insertCSS({
+              target: { tabId, allFrames: script.all_frames },
+              files: [css[0] === '/' ? css : `/${css}`]
             })
           }
         }

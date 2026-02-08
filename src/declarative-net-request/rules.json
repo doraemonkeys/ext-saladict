@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://www.zdic.net"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "https://img.zdic.net/audio/*",
+      "resourceTypes": [
+        "xmlhttprequest",
+        "media"
+      ]
+    }
+  }
+]

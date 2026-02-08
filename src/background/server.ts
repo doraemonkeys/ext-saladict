@@ -19,7 +19,7 @@ import {
 import { AudioManager } from './audio-manager'
 import { QsPanelManager } from './windows-manager'
 import { getTextFromClipboard, copyTextToClipboard } from './clipboard-manager'
-import './types'
+import { getAppConfig, getActiveProfile } from './state'
 import { DictID } from '@/app-config'
 
 /**
@@ -45,7 +45,7 @@ export class BackgroundServer {
   }> {
     return import(
       /* webpackInclude: /engine\.ts$/ */
-      /* webpackMode: "lazy" */
+      /* webpackMode: "eager" */
       `@/components/dictionaries/${id}/engine.ts`
     )
   }
@@ -65,8 +65,7 @@ export class BackgroundServer {
         case 'PLAY_AUDIO':
           return AudioManager.getInstance().play(msg.payload)
         case 'STOP_AUDIO':
-          AudioManager.getInstance().reset()
-          return
+          return AudioManager.getInstance().reset()
         case 'FETCH_DICT_RESULT':
           return this.fetchDictResult(msg.payload)
         case 'DICT_ENGINE_METHOD':
@@ -84,8 +83,9 @@ export class BackgroundServer {
         case 'OPEN_QS_PANEL':
           return this.openQSPanel()
         case 'CLOSE_QS_PANEL':
-          AudioManager.getInstance().reset()
-          return this.qsPanelManager.destroy()
+          return AudioManager.getInstance()
+            .reset()
+            .then(() => this.qsPanelManager.destroy())
         case 'QS_SWITCH_SIDEBAR':
           return this.qsPanelManager.toggleSidebar(msg.payload)
 
@@ -175,11 +175,7 @@ export class BackgroundServer {
   }: Message<'OPEN_DICT_SRC_PAGE'>['payload']): Promise<void> {
     const engine = await BackgroundServer.getDictEngine(id)
     return openUrl({
-      url: await engine.getSrcPage(
-        text,
-        window.appConfig,
-        window.activeProfile
-      ),
+      url: await engine.getSrcPage(text, getAppConfig(), getActiveProfile()),
       active
     })
   }
@@ -198,7 +194,7 @@ export class BackgroundServer {
 
       try {
         response = await timeout(
-          search(data.text, window.appConfig, window.activeProfile, payload),
+          search(data.text, getAppConfig(), getActiveProfile(), payload),
           25000
         )
       } catch (e) {
@@ -206,7 +202,7 @@ export class BackgroundServer {
           // retry once
           await timer(500)
           response = await timeout(
-            search(data.text, window.appConfig, window.activeProfile, payload),
+            search(data.text, getAppConfig(), getActiveProfile(), payload),
             25000
           )
         } else {
@@ -250,29 +246,31 @@ export class BackgroundServer {
   }
 
   /** Bypass http restriction */
-  youdaoTranslateAjax(request: any): Promise<any> {
-    return new Promise(resolve => {
-      const xhr = new XMLHttpRequest()
-      xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4) {
-          const data = xhr.status === 200 ? xhr.responseText : null
-          resolve({
-            response: data,
-            index: request.index
-          })
-        }
+  async youdaoTranslateAjax(request: any): Promise<any> {
+    try {
+      const init: RequestInit = {
+        method: request.type
       }
-      xhr.open(request.type, request.url, true)
 
       if (request.type === 'POST') {
-        xhr.setRequestHeader(
-          'Content-Type',
-          'application/x-www-form-urlencoded'
-        )
-        xhr.send(request.data)
-      } else {
-        xhr.send(null as any)
+        init.headers = {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        init.body = request.data
       }
-    })
+
+      const response = await fetch(request.url, init)
+      const data = response.ok ? await response.text() : null
+
+      return {
+        response: data,
+        index: request.index
+      }
+    } catch {
+      return {
+        response: null,
+        index: request.index
+      }
+    }
   }
 }

@@ -116,7 +116,7 @@ export class Service extends SyncService<SyncConfig, SyncMeta> {
         method: 'PROPFIND',
         headers: {
           Authorization:
-            'Basic ' + window.btoa(`${this.config.user}:${this.config.passwd}`),
+            'Basic ' + btoa(`${this.config.user}:${this.config.passwd}`),
           'Content-Type': 'application/xml; charset="utf-8"',
           Depth: '1'
         }
@@ -132,25 +132,35 @@ export class Service extends SyncService<SyncConfig, SyncMeta> {
       throw new Error('network')
     }
 
-    let doc: Document | undefined
-    try {
-      if (text) {
-        doc = new DOMParser().parseFromString(text, 'text/xml')
-      }
-    } catch (e) {
+    if (!text) {
       throw new Error('parse')
     }
 
-    if (!doc) {
+    // Parse WebDAV PROPFIND XML using regex (no DOMParser in SW).
+    // Extract each <response>...</response> block.
+    const responseBlocks = text.match(
+      /<(?:\w+:)?response[\s>][\s\S]*?<\/(?:\w+:)?response>/gi
+    )
+    if (!responseBlocks) {
       throw new Error('parse')
     }
 
-    const $responses = Array.from(doc.querySelectorAll('response'))
-    for (const i in $responses) {
-      const href = $responses[i].querySelector('href')
-      if (href && href.textContent && href.textContent.endsWith('/Saladict/')) {
-        // is Saladict
-        if ($responses[i].querySelector('resourcetype collection')) {
+    for (const block of responseBlocks) {
+      // Extract <href>...</href> content (with optional namespace prefix)
+      const hrefMatch = block.match(
+        /<(?:\w+:)?href[^>]*>([\s\S]*?)<\/(?:\w+:)?href>/i
+      )
+      const href = hrefMatch ? hrefMatch[1].trim() : ''
+
+      if (href && href.endsWith('/Saladict/')) {
+        // Check if <resourcetype> contains <collection/>
+        const resourceTypeMatch = block.match(
+          /<(?:\w+:)?resourcetype[\s>][\s\S]*?<\/(?:\w+:)?resourcetype>/i
+        )
+        if (
+          resourceTypeMatch &&
+          /<(?:\w+:)?collection/i.test(resourceTypeMatch[0])
+        ) {
           // is collection
           return true
         } else {
@@ -174,7 +184,7 @@ export class Service extends SyncService<SyncConfig, SyncMeta> {
         method: 'MKCOL',
         headers: {
           Authorization:
-            'Basic ' + window.btoa(`${this.config.user}:${this.config.passwd}`)
+            'Basic ' + btoa(`${this.config.user}:${this.config.passwd}`)
         }
       })
       if (!response.ok) {
@@ -229,7 +239,7 @@ export class Service extends SyncService<SyncConfig, SyncMeta> {
         method: 'PUT',
         headers: {
           Authorization:
-            'Basic ' + window.btoa(`${this.config.user}:${this.config.passwd}`)
+            'Basic ' + btoa(`${this.config.user}:${this.config.passwd}`)
         },
         body
       })
@@ -262,7 +272,7 @@ export class Service extends SyncService<SyncConfig, SyncMeta> {
     }
 
     const headers: { [name: string]: string } = {
-      Authorization: 'Basic ' + window.btoa(`${config.user}:${config.passwd}`)
+      Authorization: 'Basic ' + btoa(`${config.user}:${config.passwd}`)
     }
     if (!testConfig && !noCache && this.meta.etag != null) {
       headers['If-None-Match'] = this.meta.etag

@@ -1,6 +1,5 @@
 import { AddConfig, SyncService } from '../../interface'
 import { getNotebook } from '../../helpers'
-import axios from 'axios'
 
 export interface SyncConfig {
   enable: boolean
@@ -62,26 +61,34 @@ export class Service extends SyncService<SyncConfig> {
    * get the user's wordbooks and judge the correctness of the authorization information
    */
   async getWordbooks<R = void>(): Promise<R> {
-    const result = await axios({
-      method: 'get',
-      url: `https://api.frdic.com/api/open/v1/studylist/category`,
-      params: {
-        language: 'en'
-      },
-      headers: {
-        Authorization: this.config.token
-      }
-    }).catch(e => {
-      if (e.response && e.response.status === 401) {
-        throw new Error('illegal_token')
-      } else {
-        throw new Error('network')
-      }
-    })
-    if (!result?.data) {
+    let response: Response
+    try {
+      response = await fetch(
+        `https://api.frdic.com/api/open/v1/studylist/category?language=en`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: this.config.token
+          }
+        }
+      )
+    } catch {
       throw new Error('network')
     }
-    const { data } = result
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('illegal_token')
+      }
+      throw new Error('network')
+    }
+
+    let data: any
+    try {
+      data = await response.json()
+    } catch {
+      throw new Error('network')
+    }
 
     if (process.env.DEBUG) {
       console.log(`Eudic Connect response(wordbook list)`, data)
@@ -95,26 +102,37 @@ export class Service extends SyncService<SyncConfig> {
   }
 
   async requestAddWords(words: string | string[]) {
-    return await axios({
-      method: 'post',
-      url: `https://api.frdic.com/api/open/v1/studylist/words`,
-      data: {
-        id: '0', // id of default wordbook
-        language: 'en',
-        words: typeof words === 'string' ? [words] : words
-      },
-      headers: {
-        Authorization: this.config.token
-      }
-    }).catch(e => {
+    let response: Response
+    try {
+      response = await fetch(
+        `https://api.frdic.com/api/open/v1/studylist/words`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: this.config.token
+          },
+          body: JSON.stringify({
+            id: '0', // id of default wordbook
+            language: 'en',
+            words: typeof words === 'string' ? [words] : words
+          })
+        }
+      )
+    } catch (e) {
       if (process.env.DEBUG) {
         console.error(e)
       }
-      if (e.response && e.response.status === 401) {
+      throw new Error('network')
+    }
+
+    if (!response.ok) {
+      if (response.status === 401) {
         throw new Error('illegal_token')
-      } else {
-        throw new Error('network')
       }
-    })
+      throw new Error('network')
+    }
+
+    return response
   }
 }

@@ -16,7 +16,15 @@ import { reportEvent } from '@/_helpers/analytics'
 import { ContextMenus } from './context-menus'
 import { BackgroundServer } from './server'
 import { openPDF } from './pdf-sniffer'
-import './types'
+import {
+  getAppConfig,
+  setAppConfig,
+  getActiveProfile,
+  setActiveProfile,
+  getProfileIDList,
+  restoreStateFromSession,
+  saveStateToSession
+} from './state'
 
 browser.runtime.onInstalled.addListener(onInstalled)
 browser.runtime.onStartup.addListener(onStartup)
@@ -40,8 +48,8 @@ function onCommand(command: string) {
   switch (command) {
     case 'toggle-active':
       updateConfig({
-        ...window.appConfig,
-        active: !window.appConfig.active
+        ...getAppConfig(),
+        active: !getAppConfig().active
       })
       break
     case 'toggle-instant':
@@ -54,7 +62,7 @@ function onCommand(command: string) {
             type: 'QUERY_PIN_STATE'
           })
           .then(isPinned => {
-            const config = window.appConfig
+            const config = getAppConfig()
             const { enable } = config[isPinned ? 'pinMode' : 'mode'].instant
 
             updateConfig({
@@ -142,15 +150,13 @@ function onCommand(command: string) {
     case 'next-profile':
     case 'prev-profile':
       {
-        const curID = window.activeProfile.id
-        const curIndex = window.profileIDList.findIndex(
-          ({ id }) => id === curID
-        )
+        const curID = getActiveProfile().id
+        const curIndex = getProfileIDList().findIndex(({ id }) => id === curID)
         const offset = command === 'next-profile' ? 1 : -1
         const nextIndex =
-          curIndex < 0 ? 0 : (curIndex + offset) % window.profileIDList.length
+          curIndex < 0 ? 0 : (curIndex + offset) % getProfileIDList().length
 
-        updateActiveProfileID(window.profileIDList[nextIndex].id).then(
+        updateActiveProfileID(getProfileIDList()[nextIndex].id).then(
           searchTextBox
         )
       }
@@ -163,10 +169,10 @@ function onCommand(command: string) {
       {
         const index = +command.slice(-1)
         if (
-          index < window.profileIDList.length &&
-          window.profileIDList[index].id !== window.activeProfile.id
+          index < getProfileIDList().length &&
+          getProfileIDList()[index].id !== getActiveProfile().id
         ) {
-          updateActiveProfileID(window.profileIDList[index].id).then(
+          updateActiveProfileID(getProfileIDList()[index].id).then(
             searchTextBox
           )
         }
@@ -185,8 +191,9 @@ async function onInstalled({
   reason: string
   previousVersion?: string
 }) {
-  window.appConfig = await initConfig()
-  window.activeProfile = await initProfiles()
+  setAppConfig(await initConfig())
+  setActiveProfile(await initProfiles())
+  saveStateToSession()
 
   await storage.local.set(
     mapValues(await storage.local.get(null), (value, key) => {
@@ -201,7 +208,7 @@ async function onInstalled({
       !(await storage.sync.get('hasInstructionsShown')).hasInstructionsShown
     ) {
       openUrl('options.html?menuselected=Privacy&nopanel=true', true)
-      if (window.appConfig.langCode.startsWith('zh')) {
+      if (getAppConfig().langCode.startsWith('zh')) {
         openUrl('https://saladict.crimx.com/notice.html')
       } else {
         openUrl('https://saladict.crimx.com/en/notice.html')
@@ -210,13 +217,21 @@ async function onInstalled({
     }
   } else if (reason === 'update') {
     if (!process.env.DEBUG) {
-      const curr = await checkUpdate(browser.runtime.getManifest().version)
+      const curr = await checkUpdate(
+        browser.runtime.getManifest().version,
+        undefined,
+        getAppConfig().langCode
+      )
       // same version as server
       if (curr.data && curr.diff === 0) {
-        const { diff, data } = await checkUpdate(previousVersion, curr.data)
+        const { diff, data } = await checkUpdate(
+          previousVersion,
+          curr.data,
+          getAppConfig().langCode
+        )
         if (data && diff >= 2) {
           setTimeout(() => {
-            const isZh = window.appConfig.langCode.startsWith('zh')
+            const isZh = getAppConfig().langCode.startsWith('zh')
             const options = {
               type: 'basic',
               iconUrl: browser.runtime.getURL(`assets/icon-128.png`),
@@ -255,10 +270,14 @@ async function onInstalled({
   }
 }
 
-function onStartup(): void {
+async function onStartup(): Promise<void> {
+  // MV3: Restore persisted state from session storage so getAppConfig() is
+  // available immediately for the logic below, without relying on a timer.
+  await restoreStateFromSession()
+
   setTimeout(() => {
     // wait for appConfig being loaded
-    if (!process.env.DEBUG && window.appConfig.updateCheck) {
+    if (!process.env.DEBUG && getAppConfig().updateCheck) {
       storage.local
         .get<{ lastCheckUpdate: number }>('lastCheckUpdate')
         .then(async ({ lastCheckUpdate }) => {
@@ -268,7 +287,9 @@ function onStartup(): void {
           } else if (today - lastCheckUpdate > 7 * 24 * 60 * 60 * 1000) {
             storage.local.set({ lastCheckUpdate: today })
             const { data, diff } = await checkUpdate(
-              browser.runtime.getManifest().version
+              browser.runtime.getManifest().version,
+              undefined,
+              getAppConfig().langCode
             )
             if (data && diff > 0) {
               const options: browser.notifications.CreateNotificationOptions = {

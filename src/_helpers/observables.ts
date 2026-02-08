@@ -9,7 +9,15 @@ import {
   mapTo
 } from 'rxjs/operators'
 import { of, Observable, OperatorFunction, from } from 'rxjs'
-import { MouseEvent } from 'react'
+// MV3: Avoid importing from 'react' here — this module is used by the
+// background Service Worker (via badge.ts → switchMapBy) and importing
+// React would crash the SW with "window is not defined".
+// hover / hoverWithDelay are only used by frontend code.
+interface SyntheticMouseEvent<N extends Node = Node> {
+  type: string
+  relatedTarget: EventTarget | null
+  currentTarget: N
+}
 
 /**
  * Reusable Observable logics
@@ -27,7 +35,7 @@ import { MouseEvent } from 'react'
  * @param event$ mouseover and mouseout events
  */
 export function hover<N extends Node>(
-  event$: Observable<MouseEvent<N>>
+  event$: Observable<SyntheticMouseEvent<N>>
 ): Observable<boolean> {
   return event$.pipe(
     filter(
@@ -44,7 +52,7 @@ export function hover<N extends Node>(
  * [[hover]] with delay on enter.
  */
 export function hoverWithDelay<N extends Node>(
-  event$: Observable<MouseEvent<N>>
+  event$: Observable<SyntheticMouseEvent<N>>
 ): Observable<boolean> {
   return hover(event$).pipe(
     // delay enter but not leave

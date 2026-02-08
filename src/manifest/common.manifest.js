@@ -1,9 +1,9 @@
 module.exports = {
-  manifest_version: 2,
+  manifest_version: 3,
 
   homepage_url: 'https://saladict.crimx.com/',
 
-  minimum_chrome_version: '55',
+  minimum_chrome_version: '109',
 
   name: '__MSG_extension_name__',
   short_name: '__MSG_extension_short_name__',
@@ -75,25 +75,43 @@ module.exports = {
   },
 
   web_accessible_resources: [
-    'assets/*',
-    'audio-control.html',
-    'quick-search.html'
+    {
+      resources: ['assets/*', 'audio-control.html', 'quick-search.html'],
+      matches: ['<all_urls>']
+    }
   ],
 
+  host_permissions: ['<all_urls>'],
+
   permissions: [
-    '<all_urls>',
     'alarms',
     'contextMenus',
     'cookies',
+    'declarativeNetRequest',
+    'declarativeNetRequestFeedback',
     'notifications',
+    'offscreen',
+    'scripting',
     'storage',
+    'system.display',
     'tabs',
     'unlimitedStorage',
-    'webRequest',
-    'webRequestBlocking'
+    'webRequest'
   ],
 
   optional_permissions: ['clipboardRead', 'clipboardWrite'],
 
-  content_security_policy: "script-src 'self'; object-src 'self'"
+  content_security_policy: {
+    extension_pages: "script-src 'self'; object-src 'self'"
+  },
+
+  declarative_net_request: {
+    rule_resources: [
+      {
+        id: 'ruleset_1',
+        enabled: true,
+        path: 'declarative-net-request/rules.json'
+      }
+    ]
+  }
 }

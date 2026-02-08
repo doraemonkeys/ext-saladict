@@ -1,5 +1,5 @@
 import i18next, { TFunction } from 'i18next'
-import { i18nLoader, Namespace } from '@/_helpers/i18n'
+import { i18nLoader, Namespace } from '@/_helpers/i18n-base'
 import { BehaviorSubject, Observable } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
 

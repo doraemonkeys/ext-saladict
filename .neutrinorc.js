@@ -95,6 +95,10 @@ module.exports = {
 
       'audio-control': {
         entry: 'audio-control'
+      },
+
+      offscreen: {
+        entry: 'offscreen/offscreen'
       }
     }
   },
@@ -247,6 +251,9 @@ module.exports = {
       // avoid collision
       neutrino.config.output.jsonpFunction('saladictEntry')
 
+      // Note: globalObject('self') is set AFTER wext() plugin below,
+      // because wext() overrides it to 'window'.
+
       // transform *.shadow.(css|scss) to string
       // this will be injected into shadow-dom style tag
       // prettier-ignore
@@ -324,8 +331,16 @@ module.exports = {
               splitChunks: {
                 cacheGroups: {
                   react: {
-                    test: /[\\/]node_modules[\\/](react|react-dom|i18next)[\\/]/,
+                    test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
                     name: 'view-vendor',
+                    // MV3: exclude background & offscreen entries — they run
+                    // in a Service Worker where `window` does not exist.
+                    chunks: ({ name }) => name !== 'background' && name !== 'offscreen',
+                    priority: 100
+                  },
+                  i18next: {
+                    test: /[\\/]node_modules[\\/]i18next[\\/]/,
+                    name: 'i18next',
                     chunks: 'all',
                     priority: 100
                   },
@@ -390,6 +405,11 @@ module.exports = {
       polyfill: true
     }),
     neutrino => {
+      // Fix globalObject for Service Worker compatibility (SW has no 'window').
+      // Must be set here (after wext() plugin) because neutrino-webextension
+      // overrides globalObject to 'window' in its production config.
+      neutrino.config.output.globalObject('self')
+
       // prettier-ignore
       neutrino.config
         .plugin('after-build')

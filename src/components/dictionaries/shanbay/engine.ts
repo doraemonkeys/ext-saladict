@@ -11,7 +11,7 @@ import {
 } from '../helpers'
 import { DictConfigs } from '@/app-config'
 import axios from 'axios'
-import DOMPurify from 'dompurify'
+import { stripScriptTags } from '../helpers'
 
 export const getSrcPage: GetSrcPageFunction = text => {
   return `https://www.shanbay.com/bdc/mobile/preview/word?word=${text}`
@@ -76,8 +76,8 @@ function loadSentences(id: string) {
         return data.map(
           (sentence: { annotation: string; translation: string }) => {
             return {
-              annotation: DOMPurify.sanitize(sentence.annotation),
-              translation: DOMPurify.sanitize(sentence.translation)
+              annotation: stripScriptTags(sentence.annotation),
+              translation: stripScriptTags(sentence.translation)
             }
           }
         )

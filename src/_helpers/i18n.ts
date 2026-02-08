@@ -1,3 +1,12 @@
+/**
+ * i18n module with React components.
+ *
+ * Re-exports everything from `i18n-base.ts` (Service Worker safe) plus
+ * React-dependent components (I18nContext, I18nContextProvider, useTranslate, Trans).
+ *
+ * Frontend code should import from this file.
+ * Background / Service Worker code should import from `i18n-base.ts` instead.
+ */
 import React, {
   useState,
   useLayoutEffect,
@@ -7,113 +16,14 @@ import React, {
   Fragment,
   PropsWithChildren
 } from 'react'
-import mapValues from 'lodash/mapValues'
 import i18n, { TFunction } from 'i18next'
-import { getConfig, addConfigListener } from '@/_helpers/config-manager'
 import zip from 'lodash/zip'
 
-export type LangCode = 'zh-CN' | 'zh-TW' | 'en'
-export type Namespace =
-  | 'common'
-  | 'content'
-  | 'langcode'
-  | 'menus'
-  | 'options'
-  | 'popup'
-  | 'wordpage'
-  | 'dicts'
-  | 'sync'
+// Re-export everything from the base module so existing imports keep working
+export * from './i18n-base'
+export { i18nLoader } from './i18n-base'
 
-export interface RawLocale {
-  'zh-CN': string
-  'zh-TW': string
-  en: string
-}
-
-export interface RawLocales {
-  [message: string]: RawLocale
-}
-
-export interface RawDictLocales {
-  name: RawLocale
-  options?: RawLocales
-  helps?: RawLocales
-}
-
-export interface DictLocales {
-  name: string
-  options?: {
-    [message: string]: any
-  }
-  helps?: {
-    [message: string]: any
-  }
-}
-
-export async function i18nLoader(): Promise<i18n.i18n> {
-  if (i18n.language) {
-    // singleton
-    return i18n
-  }
-
-  const { langCode } = await getConfig()
-
-  await i18n
-    .use({
-      type: 'backend',
-      init: () => {},
-      create: () => {},
-      read: async (lang: LangCode, ns: Namespace, cb: Function) => {
-        try {
-          if (ns === 'dicts') {
-            const dictLocals = extractDictLocales(lang)
-            cb(null, dictLocals)
-            return dictLocals
-          }
-
-          if (ns === 'sync') {
-            const syncLocales = extractSyncServiceLocales(lang)
-            cb(null, syncLocales)
-            return syncLocales
-          }
-
-          const { locale } = await import(
-            /* webpackInclude: /_locales\/[^/]+\/[^/]+\.ts$/ */
-            /* webpackMode: "lazy" */
-            `@/_locales/${lang}/${ns}.ts`
-          )
-          cb(null, locale)
-          return locale
-        } catch (err) {
-          cb(err)
-        }
-      }
-    })
-    .init({
-      lng: langCode,
-      fallbackLng: false,
-      whitelist: ['en', 'zh-CN', 'zh-TW'],
-
-      debug: process.env.NODE_ENV === 'development',
-      saveMissing: false,
-      load: 'currentOnly',
-
-      ns: 'common',
-      defaultNS: 'common',
-
-      interpolation: {
-        escapeValue: false // not needed for react as it escapes by default
-      }
-    })
-
-  addConfigListener(({ newConfig }) => {
-    if (i18n.language !== newConfig.langCode) {
-      i18n.changeLanguage(newConfig.langCode)
-    }
-  })
-
-  return i18n
-}
+import { Namespace } from './i18n-base'
 
 const defaultT: i18n.TFunction = () => ''
 
@@ -126,18 +36,31 @@ export const I18nContextProvider: FC = ({ children }) => {
   const [lang, setLang] = useState<string | undefined>(undefined)
 
   useLayoutEffect(() => {
+    let isActive = true
+
+    const { i18nLoader } = require('./i18n-base')
+
     const setLangCallback = () => {
-      setLang(i18n.language)
+      if (isActive) {
+        setLang(i18n.language)
+      }
     }
 
-    if (!i18n.language) {
+    if (i18n.language) {
+      // i18n already initialized (e.g. singleton reuse, HMR remount)
+      setLang(i18n.language)
+      i18n.on('languageChanged', setLangCallback)
+    } else {
       i18nLoader().then(() => {
-        setLang(i18n.language)
+        if (isActive) {
+          setLang(i18n.language)
+        }
         i18n.on('languageChanged', setLangCallback)
       })
     }
 
     return () => {
+      isActive = false
       i18n.off('languageChanged', setLangCallback)
     }
   }, [])
@@ -275,42 +198,3 @@ export const Trans = React.memo<PropsWithChildren<{ message?: string }>>(
     )
   }
 )
-
-function extractDictLocales(lang: LangCode) {
-  const req = require.context(
-    '@/components/dictionaries',
-    true,
-    /_locales\.(json|ts)$/
-  )
-  return req.keys().reduce<{ [id: string]: DictLocales }>((o, filename) => {
-    const localeModule = req(filename)
-    const json: RawDictLocales = localeModule.locales || localeModule
-    const dictId = /([^/]+)\/_locales\.(json|ts)$/.exec(filename)![1]
-    o[dictId] = {
-      name: json.name[lang]
-    }
-    if (json.options) {
-      o[dictId].options = mapValues(json.options, rawLocale => rawLocale[lang])
-    }
-    if (json.helps) {
-      o[dictId].helps = mapValues(json.helps, rawLocale => rawLocale[lang])
-    }
-    return o
-  }, {})
-}
-
-function extractSyncServiceLocales(lang: LangCode) {
-  const req = require.context(
-    '@/background/sync-manager/services',
-    true,
-    /_locales\/.+\.ts$/
-  )
-  return req.keys().reduce<{ [id: string]: DictLocales }>((o, filename) => {
-    const idMatch = new RegExp(`/([^/]+)/_locales/${lang}\\.ts$`).exec(filename)
-    if (idMatch) {
-      const localeModule = req(filename)
-      o[idMatch[1]] = localeModule.locale || localeModule
-    }
-    return o
-  }, {})
-}
