@@ -274,6 +274,7 @@ function _getDefaultConfig() {
     /** context tranlate engines */
     ctxTrans: {
       google: true,
+      bingtrans: true,
       youdaotrans: true,
       baidu: true,
       tencent: false,
@@ -318,7 +319,7 @@ function _getDefaultConfig() {
       },
       machine: {
         dict: '' as DictID | '',
-        list: ['google', 'sogou', 'tencent', 'baidu', 'caiyun'],
+        list: ['google', 'bingtrans', 'sogou', 'tencent', 'baidu', 'caiyun'],
         // play translation or source
         src: 'trans' as 'trans' | 'searchText'
       }

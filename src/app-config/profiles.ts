@@ -201,6 +201,7 @@ export function translation(): ProfileStorage {
   const profile = getDefaultProfile(idItem.id) as ProfileMutable
   profile.dicts.selected = [
     'google',
+    'bingtrans',
     'tencent',
     'baidu',
     'caiyun',
