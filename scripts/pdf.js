@@ -5,11 +5,9 @@
 const shell = require('shelljs')
 const path = require('path')
 const fs = require('fs-extra')
-
-if (!shell.which('git')) {
-  shell.echo('Sorry, this script requires git')
-  shell.exit(1)
-}
+const https = require('https')
+const http = require('http')
+const { execSync } = require('child_process')
 
 const cacheDir = 'pdf'
 const repoRoot = 'pdf'
@@ -29,16 +27,63 @@ shell.cd(path.resolve(__dirname))
 
 shell.rm('-rf', cacheDir)
 
-exec(
-  `wget https://github.com/mozilla/pdf.js/releases/download/v2.16.105/pdfjs-2.16.105-dist.zip -O pdfjs.tar.gz &&
-  mkdir -p ${cacheDir} &&
-  tar -xzvf pdfjs.tar.gz -C ${cacheDir}`,
-  'Error: download failed'
-)
+const zipUrl = 'https://github.com/mozilla/pdf.js/releases/download/v2.16.105/pdfjs-2.16.105-dist.zip'
+const zipFile = path.join(__dirname, 'pdfjs.zip')
+const extractDir = path.join(__dirname, cacheDir)
 
-shell.cd('./' + cacheDir)
+async function downloadFile(url, dest, maxRedirects = 5) {
+  if (maxRedirects <= 0) throw new Error('Too many redirects')
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? https : http
+    client.get(url, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        shell.echo('Redirecting to: ' + res.headers.location)
+        downloadFile(res.headers.location, dest, maxRedirects - 1).then(resolve).catch(reject)
+        return
+      }
+      if (res.statusCode !== 200) {
+        reject(new Error('Download failed with status: ' + res.statusCode))
+        return
+      }
+      const fileStream = fs.createWriteStream(dest)
+      res.pipe(fileStream)
+      fileStream.on('finish', () => { fileStream.close(); resolve() })
+      fileStream.on('error', reject)
+    }).on('error', reject)
+  })
+}
 
-startUpgrade()
+async function downloadAndExtract() {
+  shell.echo('Downloading PDF.js...')
+  await downloadFile(zipUrl, zipFile)
+  shell.echo('Download complete. Extracting...')
+
+  await fs.ensureDir(extractDir)
+
+  // Use tar on all platforms (Windows 10+ has built-in tar with zip support)
+  try {
+    execSync(`tar -xf "${zipFile}" -C "${extractDir}"`, { stdio: 'inherit' })
+  } catch (e) {
+    // Fallback: try PowerShell Expand-Archive on Windows
+    if (process.platform === 'win32') {
+      execSync(`powershell -Command "Expand-Archive -Path '${zipFile}' -DestinationPath '${extractDir}' -Force"`, { stdio: 'inherit' })
+    } else {
+      throw e
+    }
+  }
+
+  await fs.remove(zipFile)
+  shell.echo('Extraction complete.')
+}
+
+downloadAndExtract().then(() => {
+
+  shell.cd(extractDir)
+  return startUpgrade()
+}).catch(err => {
+  shell.echo('Error: ' + err.message)
+  shell.exit(1)
+})
 
 async function startUpgrade() {
   shell.echo('\nChecking files.')
