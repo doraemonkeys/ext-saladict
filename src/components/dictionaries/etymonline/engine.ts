@@ -1,3 +1,4 @@
+import { parse } from 'node-html-parser'
 import { fetchDirtyDOM } from '@/_helpers/fetch-dom'
 import { DictConfigs } from '@/app-config'
 import {
@@ -67,13 +68,12 @@ function handleDOM(
     if ($def) {
       $def.querySelectorAll('.crossreference').forEach($cf => {
         const word = getText($cf)
-
-        const $a = document.createElement('a')
-        $a.target = '_blank'
-        $a.href = `https://www.etymonline.com/word/${word}`
-        $a.textContent = word
-
-        $cf.replaceWith($a)
+        // MV3: document.createElement unavailable; use parse()
+        $cf.replaceWith(
+          parse(
+            `<a target="_blank" href="https://www.etymonline.com/word/${word}">${word}</a>`
+          )
+        )
       })
       def = getInnerHTML(HOST, $def)
     }

@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { SearchFunction, GetSrcPageFunction } from '../helpers'
 import memoizeOne from 'memoize-one'
 import { Baidu } from '@opentranslate/baidu'
@@ -13,6 +14,8 @@ export const getTranslator = memoizeOne(
   () =>
     new Baidu({
       env: 'ext',
+      // MV3: pass the main bundle's axios (with fetch adapter installed)
+      axios: axios as any,
       config:
         process.env.BAIDU_APPID && process.env.BAIDU_KEY
           ? {

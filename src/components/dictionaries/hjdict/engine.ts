@@ -123,13 +123,16 @@ function handleDOM(
     $header
       .querySelectorAll<HTMLLIElement>('.word-details-tab')
       .forEach(($tab, i) => {
-        $tab.dataset.categories = String(i)
+        // MV3: node-html-parser has no `dataset`; use setAttribute
+        $tab.setAttribute('data-categories', String(i))
       })
     header = getInnerHTML(HOST, $header)
   }
 
   doc.querySelectorAll<HTMLSpanElement>('.word-audio').forEach($audio => {
-    $audio.replaceWith(getStaticSpeaker($audio.dataset.src))
+    $audio.replaceWith(
+      getStaticSpeaker($audio.getAttribute('data-src'))
+    )
   })
 
   const entries: HTMLString[] = [

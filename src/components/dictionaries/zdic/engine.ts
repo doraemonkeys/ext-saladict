@@ -49,7 +49,8 @@ function handleDOM(
   for (const $entry of doc.querySelectorAll<HTMLDivElement>(
     '[data-type-block]'
   )) {
-    const title = $entry.dataset.typeBlock || ''
+    // MV3: node-html-parser has no `dataset`; use getAttribute
+    const title = $entry.getAttribute('data-type-block') || ''
     if (!/基本解释|词语解释|详细解释/.test(title)) {
       continue
     }
@@ -58,12 +59,13 @@ function handleDOM(
       '[data-src-mp3]'
     )) {
       if (isAudio) {
+        const mp3Src = $a.getAttribute('data-src-mp3')
         if (!response.audio) {
           response.audio = {
-            py: $a.dataset.srcMp3
+            py: mp3Src || undefined
           }
         }
-        $a.replaceWith(getStaticSpeaker($a.dataset.srcMp3))
+        $a.replaceWith(getStaticSpeaker(mp3Src))
       } else {
         $a.remove()
       }

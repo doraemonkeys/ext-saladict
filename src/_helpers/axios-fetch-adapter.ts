@@ -129,15 +129,9 @@ export async function fetchAdapter(
         break
     }
 
-    // Apply transformResponse
-    if (config.transformResponse) {
-      const transforms = Array.isArray(config.transformResponse)
-        ? config.transformResponse
-        : [config.transformResponse]
-      for (const fn of transforms) {
-        data = fn(data)
-      }
-    }
+    // NOTE: Do NOT apply transformResponse here.
+    // Axios core applies transformResponse after the adapter returns.
+    // Applying it here would double-transform the data.
 
     const axiosResponse: AxiosResponse = {
       data,

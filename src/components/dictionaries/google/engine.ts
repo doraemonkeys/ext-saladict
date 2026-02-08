@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { SearchFunction, GetSrcPageFunction } from '../helpers'
 import memoizeOne from 'memoize-one'
 import { Google } from '@opentranslate/google'
@@ -10,7 +11,10 @@ import {
 import { GoogleLanguage } from './config'
 import { Language } from '@opentranslate/languages'
 
-export const getTranslator = memoizeOne(() => new Google({ env: 'ext' }))
+// MV3: pass the main bundle's axios (with fetch adapter installed)
+export const getTranslator = memoizeOne(
+  () => new Google({ env: 'ext', axios: axios as any })
+)
 
 export const getSrcPage: GetSrcPageFunction = (text, config, profile) => {
   const domain = 'com'

@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { SearchFunction, GetSrcPageFunction } from '../helpers'
 import memoizeOne from 'memoize-one'
 import { Caiyun } from '@opentranslate/caiyun'
@@ -15,6 +16,9 @@ export const getTranslator = memoizeOne(
   () =>
     new Caiyun({
       env: 'ext',
+      // MV3: pass the main bundle's axios (with fetch adapter installed)
+      // so the translator doesn't use its own copy without the adapter
+      axios: axios as any,
       config: process.env.CAIYUN_TOKEN
         ? {
             token: process.env.CAIYUN_TOKEN

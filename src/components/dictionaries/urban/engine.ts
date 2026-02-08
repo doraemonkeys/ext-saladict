@@ -110,7 +110,10 @@ async function handleDOM(
   const result: UrbanResult = []
   const audio: { us?: string } = {}
 
-  const defPanels = Array.from(doc.querySelectorAll('.def-panel'))
+  // MV3: Urban Dictionary renamed .def-panel to .definition
+  const defPanels = Array.from(
+    doc.querySelectorAll('.definition[data-defid], .def-panel')
+  )
 
   if (defPanels.length <= 0) {
     return handleNoResult()
@@ -137,9 +140,11 @@ async function handleDOM(
     }
 
     const $pron = $panel.querySelector('.play-sound') as HTMLElement
-    if ($pron && $pron.dataset.urls) {
+    // MV3: node-html-parser has no `dataset`; use getAttribute
+    const pronUrls = $pron && $pron.getAttribute('data-urls')
+    if ($pron && pronUrls) {
       try {
-        const pron = JSON.parse($pron.dataset.urls)[0]
+        const pron = JSON.parse(pronUrls)[0]
         if (pron) {
           resultItem.pron = pron
           audio.us = pron
@@ -160,7 +165,8 @@ async function handleDOM(
     if ($gif) {
       const $attr = $gif.nextElementSibling
       resultItem.gif = {
-        src: $gif.src,
+        // MV3: node-html-parser has no `.src` property; use getAttribute
+        src: $gif.getAttribute('src') || '',
         attr: getText($attr)
       }
     }

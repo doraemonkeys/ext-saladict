@@ -1,3 +1,4 @@
+import { parse } from 'node-html-parser'
 import { fetchDirtyDOM } from '@/_helpers/fetch-dom'
 import {
   handleNoResult,
@@ -193,15 +194,18 @@ function handleLexResult(
         ])[0]
       }
       el.querySelectorAll('.client_sen_en_word').forEach($word => {
-        $word.outerHTML = getText($word)
+        // MV3: node-html-parser outerHTML is read-only; use replaceWith
+        $word.replaceWith(parse(getText($word)))
       })
       el.querySelectorAll('.client_sen_cn_word').forEach($word => {
-        $word.outerHTML = getText($word, transform)
+        $word.replaceWith(parse(getText($word, transform)))
       })
       el.querySelectorAll('.client_sentence_search').forEach($word => {
-        $word.outerHTML = `<span class="dictBing-SentenceItem_HL">${getText(
-          $word
-        )}</span>`
+        $word.replaceWith(
+          parse(
+            `<span class="dictBing-SentenceItem_HL">${getText($word)}</span>`
+          )
+        )
       })
       sentences.push({
         en: getInnerHTML(HOST, el, '.client_sen_en'),

@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { SearchFunction, GetSrcPageFunction } from '../helpers'
 import memoizeOne from 'memoize-one'
 import { Sogou } from '@opentranslate/sogou'
@@ -13,6 +14,8 @@ export const getTranslator = memoizeOne(
   () =>
     new Sogou({
       env: 'ext',
+      // MV3: pass the main bundle's axios (with fetch adapter installed)
+      axios: axios as any,
       config:
         process.env.SOGOU_PID && process.env.SOGOU_KEY
           ? {

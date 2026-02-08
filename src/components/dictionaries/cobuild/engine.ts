@@ -92,7 +92,8 @@ async function handleDOM(
     ...doc.querySelectorAll<HTMLDivElement>(`[data-type-block]`)
   ]
     .filter($section => {
-      const type = $section.dataset.typeBlock || ''
+      // MV3: node-html-parser has no `dataset`; use getAttribute
+      const type = $section.getAttribute('data-type-block') || ''
       return (
         type &&
         type !== 'Video' &&
@@ -102,11 +103,11 @@ async function handleDOM(
       )
     })
     .map($section => {
-      const type = $section.dataset.typeBlock || ''
-      const title = $section.dataset.titleBlock || ''
-      const num = $section.dataset.numBlock || ''
+      const type = $section.getAttribute('data-type-block') || ''
+      const title = $section.getAttribute('data-title-block') || ''
+      const num = $section.getAttribute('data-num-block') || ''
       const id = type + title + num
-      const className = $section.className || ''
+      const className = $section.getAttribute('class') || ''
 
       if (type === 'Learner') {
         //   const $frequency = $section.querySelector<HTMLSpanElement>('.word-frequency-img')
@@ -133,7 +134,7 @@ async function handleDOM(
         const $youtubeVideo = $video.querySelector<HTMLDivElement>(
           '.youtube-video'
         )
-        if ($youtubeVideo && $youtubeVideo.dataset.embed) {
+        if ($youtubeVideo && $youtubeVideo.getAttribute('data-embed')) {
           const width = config.panelWidth - 25
           const height = (width / 560) * 315
           return {
@@ -142,7 +143,7 @@ async function handleDOM(
             type,
             title,
             num,
-            content: `<iframe width="${width}" height="${height}" src="https://www.youtube-nocookie.com/embed/${$youtubeVideo.dataset.embed}" frameborder="0" allow="accelerometer; encrypted-media"></iframe>`
+            content: `<iframe width="${width}" height="${height}" src="https://www.youtube-nocookie.com/embed/${$youtubeVideo.getAttribute('data-embed')}" frameborder="0" allow="accelerometer; encrypted-media"></iframe>`
           }
         }
       }
@@ -150,7 +151,9 @@ async function handleDOM(
       $section
         .querySelectorAll<HTMLAnchorElement>('.audio_play_button')
         .forEach($speaker => {
-          $speaker.replaceWith(getStaticSpeaker($speaker.dataset.srcMp3))
+          $speaker.replaceWith(
+            getStaticSpeaker($speaker.getAttribute('data-src-mp3'))
+          )
         })
 
       // so that clicking won't trigger in-panel search
@@ -182,7 +185,8 @@ function getAudio($section: HTMLElement): string | undefined {
     '.pron .audio_play_button'
   )
   if ($audio) {
-    const src = $audio.dataset.srcMp3
+    // MV3: node-html-parser has no `dataset`; use getAttribute
+    const src = $audio.getAttribute('data-src-mp3')
     if (src) {
       return src
     }

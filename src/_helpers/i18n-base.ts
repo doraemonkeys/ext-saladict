@@ -77,8 +77,8 @@ export async function i18nLoader(): Promise<i18n.i18n> {
           }
 
           const { locale } = await import(
-            /* webpackInclude: /_locales\/[^/]+\/[^/]+\.ts$/ */
-            /* webpackMode: "lazy" */
+            /* webpackInclude: /\.ts$/ */
+            /* webpackMode: "eager" */
             `@/_locales/${lang}/${ns}.ts`
           )
           cb(null, locale)

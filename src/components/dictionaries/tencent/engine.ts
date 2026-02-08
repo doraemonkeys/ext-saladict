@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { SearchFunction, GetSrcPageFunction } from '../helpers'
 import memoizeOne from 'memoize-one'
 import { Tencent } from '@opentranslate/tencent'
@@ -14,6 +15,8 @@ export const getTranslator = memoizeOne(
   () =>
     new Tencent({
       env: 'ext',
+      // MV3: pass the main bundle's axios (with fetch adapter installed)
+      axios: axios as any,
       config:
         process.env.TENCENT_SECRETID && process.env.TENCENT_SECRETKEY
           ? {

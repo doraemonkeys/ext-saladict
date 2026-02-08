@@ -1,3 +1,4 @@
+import { parse } from 'node-html-parser'
 import {
   HTMLString,
   handleNoResult,
@@ -59,7 +60,8 @@ export const search: SearchFunction<GoogleDictResult> = async (
   function handleDOM(
     bodyText: string
   ): GoogleDictSearchResult | Promise<GoogleDictSearchResult> {
-    const doc = new DOMParser().parseFromString(bodyText, 'text/html')
+    // MV3: DOMParser is unavailable in Service Worker; use node-html-parser
+    const doc = parse(bodyText) as unknown as Document
 
     // mend fragments
     extFragements(bodyText).forEach(({ id, innerHTML }) => {
@@ -113,12 +115,13 @@ export const search: SearchFunction<GoogleDictResult> = async (
         .querySelectorAll('[role=listitem] > [jsname=F457ec]')
         .forEach($word => {
           // let saladict jump into the words
-          const $a = document.createElement('a')
-          $a.textContent = getText($word)
+          // MV3: document.createElement unavailable; use parse()
+          const text = getText($word)
+          const $a = parse(`<a>${text}</a>`).firstChild
           Array.from($word.childNodes).forEach($child => {
             $child.remove()
           })
-          $word.appendChild($a)
+          if ($a) $word.appendChild($a)
           // always appeared available
           $word.removeAttribute('style')
           $word.classList.add('MR2UAc')

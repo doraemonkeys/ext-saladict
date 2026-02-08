@@ -101,15 +101,20 @@ function handleDOM(
 
   const $star = doc.querySelector('.star')
   if ($star) {
-    result.stars = Number(($star.className.match(/\d+/) || [0])[0])
+    // MV3: node-html-parser has no `className` property; use getAttribute
+    result.stars = Number(
+      (($star.getAttribute('class') || '').match(/\d+/) || [0])[0]
+    )
   }
 
   doc.querySelectorAll('.baav .pronounce').forEach($pron => {
     const phsym = $pron.textContent || ''
     const $voice = $pron.querySelector<HTMLAnchorElement>('.dictvoice')
-    if ($voice && $voice.dataset.rel) {
+    // MV3: node-html-parser has no `dataset`; use getAttribute
+    const voiceRel = $voice && $voice.getAttribute('data-rel')
+    if ($voice && voiceRel) {
       const url =
-        'https://dict.youdao.com/dictvoice?audio=' + $voice.dataset.rel
+        'https://dict.youdao.com/dictvoice?audio=' + voiceRel
 
       result.prons.push({ phsym, url })
 
@@ -141,7 +146,10 @@ function handleDOM(
 
       const $star = $container.querySelector('.star')
       if ($star) {
-        const starMatch = /star(\d+)/.exec(String($star.className))
+        // MV3: node-html-parser has no `className`; use getAttribute
+        const starMatch = /star(\d+)/.exec(
+          $star.getAttribute('class') || ''
+        )
         if (starMatch) {
           const rate = +starMatch[1]
           let stars = ''

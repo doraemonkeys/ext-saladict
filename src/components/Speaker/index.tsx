@@ -109,16 +109,27 @@ export const StaticSpeakerContainer: FC<StaticSpeakerContainerProps> = props => 
 /**
  * Returns a anchor element
  */
-export const getStaticSpeaker = (src?: string | null) => {
+export const getStaticSpeaker = (src?: string | null): any => {
   if (!src) {
     return ''
   }
 
-  const $a = document.createElement('a')
-  $a.target = '_blank'
-  $a.href = src
-  $a.className = 'saladict-Speaker'
-  return $a
+  if (typeof document !== 'undefined') {
+    const $a = document.createElement('a')
+    $a.target = '_blank'
+    $a.href = src
+    $a.className = 'saladict-Speaker'
+    return $a
+  }
+
+  // MV3: Service Worker – document is unavailable.
+  // Return a node-html-parser element so that callers using
+  // replaceWith() keep working.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { parse } = require('node-html-parser')
+  return parse(
+    `<a href="${src}" target="_blank" rel="noopener noreferrer" class="saladict-Speaker"></a>`
+  )
 }
 
 /**

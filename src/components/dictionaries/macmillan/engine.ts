@@ -161,8 +161,10 @@ function handleDOM(
   const $sound = $entry.querySelector<HTMLDivElement>(
     '.entry-pron-head .PRONS .sound'
   )
-  if ($sound && $sound.dataset.srcMp3) {
-    result.pron = $sound.dataset.srcMp3
+  // MV3: node-html-parser has no `dataset`; use getAttribute
+  const srcMp3 = $sound && $sound.getAttribute('data-src-mp3')
+  if ($sound && srcMp3) {
+    result.pron = srcMp3
     audio.uk = result.pron
   }
 

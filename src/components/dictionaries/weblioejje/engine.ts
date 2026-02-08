@@ -1,3 +1,4 @@
+import { parse } from 'node-html-parser'
 import { fetchDirtyDOM } from '@/_helpers/fetch-dom'
 import {
   handleNoResult,
@@ -57,7 +58,10 @@ function handleDOM(
           head += getStaticSpeakerString($audio.getAttribute('src'))
         }
 
-        $summaryTbl.outerHTML = `<div class="summaryHead">${head}</div>`
+        // MV3: node-html-parser outerHTML is read-only; use replaceWith
+        $summaryTbl.replaceWith(
+          parse(`<div class="summaryHead">${head}</div>`)
+        )
       }
 
       removeChildren($entry, '#leadBtnWrp')
@@ -70,7 +74,8 @@ function handleDOM(
     }
 
     if (
-      !$entry.className.includes('hlt_') ||
+      // MV3: node-html-parser has no `className`; use getAttribute
+      !($entry.getAttribute('class') || '').includes('hlt_') ||
       $entry.classList.contains('hlt_CPRHT') ||
       $entry.classList.contains('hlt_RLTED')
     ) {
@@ -106,7 +111,10 @@ function handleDOM(
 
     $entry.querySelectorAll('br').forEach($br => {
       $br.classList.add('br')
-      $br.outerHTML = `<div class="${$br.className}"></div>`
+      // MV3: outerHTML setter & className not available; use replaceWith + getAttribute
+      $br.replaceWith(
+        parse(`<div class="${$br.getAttribute('class') || ''}"></div>`)
+      )
     })
 
     $entry.querySelectorAll('a').forEach($a => {
