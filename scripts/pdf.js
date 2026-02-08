@@ -60,16 +60,16 @@ async function downloadAndExtract() {
 
   await fs.ensureDir(extractDir)
 
-  // Use tar on all platforms (Windows 10+ has built-in tar with zip support)
-  try {
-    execSync(`tar -xf "${zipFile}" -C "${extractDir}"`, { stdio: 'inherit' })
-  } catch (e) {
-    // Fallback: try PowerShell Expand-Archive on Windows
-    if (process.platform === 'win32') {
+  if (process.platform === 'win32') {
+    // Windows: try tar first, fallback to PowerShell
+    try {
+      execSync(`tar -xf "${zipFile}" -C "${extractDir}"`, { stdio: 'inherit' })
+    } catch (e) {
       execSync(`powershell -Command "Expand-Archive -Path '${zipFile}' -DestinationPath '${extractDir}' -Force"`, { stdio: 'inherit' })
-    } else {
-      throw e
     }
+  } else {
+    // Linux/macOS: use unzip
+    execSync(`unzip -o "${zipFile}" -d "${extractDir}"`, { stdio: 'inherit' })
   }
 
   await fs.remove(zipFile)
