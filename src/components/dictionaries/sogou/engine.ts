@@ -97,18 +97,6 @@ export const search: SearchFunction<
       translator.getSupportLanguages()
     )
   } catch (e) {
-    return machineResult(
-      {
-        result: {
-          id: 'sogou',
-          sl,
-          tl,
-          slInitial: 'hide',
-          searchText: { paragraphs: [''] },
-          trans: { paragraphs: [''] }
-        }
-      },
-      translator.getSupportLanguages()
-    )
+    throw e
   }
 }

@@ -71,7 +71,12 @@ export const searchStartEpic: Epic = (action$, state$) =>
                       : { isPDF: isPDFPage() }
                 }
               })
-              .catch(() => ({ id, result: null }))
+              .then(res => {
+                return res;
+              })
+              .catch((err) => {
+                return { id, result: null };
+              })
         )
       ).pipe(share())
 

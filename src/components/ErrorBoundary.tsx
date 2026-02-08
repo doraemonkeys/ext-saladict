@@ -17,7 +17,7 @@ export class ErrorBoundary extends React.PureComponent<
     hasError: false
   }
 
-  static getDerivedStateFromError() {
+  static getDerivedStateFromError(error: Error) {
     return { hasError: true }
   }
 

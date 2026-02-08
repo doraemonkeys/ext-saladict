@@ -79,18 +79,6 @@ export const search: SearchFunction<
       translator.getSupportLanguages()
     )
   } catch (e) {
-    return machineResult(
-      {
-        result: {
-          id: 'baidu',
-          slInitial: 'hide',
-          sl,
-          tl,
-          searchText: { paragraphs: [''] },
-          trans: { paragraphs: [''] }
-        }
-      },
-      translator.getSupportLanguages()
-    )
+    throw e
   }
 }

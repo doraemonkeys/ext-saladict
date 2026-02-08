@@ -360,6 +360,7 @@ function messageSend<T extends MsgType>(
   if (process.env.DEBUG) {
     callContext = new Error('Message Call Context')
   }
+  const msgType = args.length === 1 ? (args[0] as any).type : (args[1] as any).type
   return (args.length === 1
     ? browser.runtime.sendMessage(args[0])
     : browser.tabs.sendMessage(args[0], args[1])

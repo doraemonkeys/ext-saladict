@@ -65,14 +65,18 @@ export const search: SearchFunction<
 
   try {
     const result = await translator.translate(text, sl, tl, caiYunConfig)
-    result.origin.tts = await baiduTranslator.textToSpeech(
-      result.origin.paragraphs.join('\n'),
-      result.from
-    )
-    result.trans.tts = await baiduTranslator.textToSpeech(
-      result.trans.paragraphs.join('\n'),
-      result.to
-    )
+    // TTS is optional — don't let TTS failure kill a successful translation
+    try {
+      result.origin.tts = await baiduTranslator.textToSpeech(
+        result.origin.paragraphs.join('\n'),
+        result.from
+      )
+      result.trans.tts = await baiduTranslator.textToSpeech(
+        result.trans.paragraphs.join('\n'),
+        result.to
+      )
+    } catch (ttsErr) {
+    }
     return machineResult(
       {
         result: {
@@ -91,18 +95,6 @@ export const search: SearchFunction<
       langcodes
     )
   } catch (e) {
-    return machineResult(
-      {
-        result: {
-          id: 'caiyun',
-          sl,
-          tl,
-          slInitial: 'hide',
-          searchText: { paragraphs: [''] },
-          trans: { paragraphs: [''] }
-        }
-      },
-      translator.getSupportLanguages()
-    )
+    throw e
   }
 }

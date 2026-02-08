@@ -9,7 +9,6 @@ import React, {
 } from 'react'
 import { useObservableCallback, identity } from 'observable-hooks'
 import classnames from 'classnames'
-import { ResizeReporter } from 'react-resize-reporter/scroll'
 import { DictID } from '@/app-config'
 import { message } from '@/_helpers/browser-api'
 import { newWord } from '@/_helpers/record-manager'
@@ -81,6 +80,45 @@ export const DictItem: FC<DictItemProps> = props => {
   const dictItemRef = useRef<HTMLDivElement | null>(null)
   // container element in shadow dom
   const dictRootRef = useRef<HTMLDivElement | null>(null)
+  // ref for the article element to observe resize via ResizeObserver
+  const articleRef = useRef<HTMLElement | null>(null)
+
+  // MV3 fix: the old scroll-based ResizeReporter (react-resize-reporter/scroll)
+  // did not detect size changes reliably.  We replaced react-shadow's nested
+  // Shadow DOM with a plain <div> so native ResizeObserver works correctly.
+  // Additionally, we poll after foldState changes to HALF because ResizeObserver
+  // may fire before the browser has fully laid out lazy-loaded content.
+  useEffect(() => {
+    const el = articleRef.current
+    if (!el) return
+
+    let rafId: number
+
+    const measureHeight = () => {
+      const height = el.scrollHeight
+      if (height > 10) {
+        setOffsetHeight(height)
+      }
+    }
+
+    const observer = new ResizeObserver(measureHeight)
+    observer.observe(el)
+
+    // Also poll a few times after mount/update to catch lazy content layout
+    let pollCount = 0
+    const poll = () => {
+      measureHeight()
+      if (pollCount++ < 10) {
+        rafId = requestAnimationFrame(poll)
+      }
+    }
+    rafId = requestAnimationFrame(poll)
+
+    return () => {
+      observer.disconnect()
+      cancelAnimationFrame(rafId)
+    }
+  }, [props.dictID, foldState])
 
   const preCatalogSelect = useCallback(
     async (item: { key: string; value: string }) => {
@@ -149,8 +187,7 @@ export const DictItem: FC<DictItemProps> = props => {
         style={{ height: visibleHeight }}
         onClick={searchLinkText}
       >
-        <article className="dictItem-BodyMesure">
-          <ResizeReporter reportInit onHeightChanged={setOffsetHeight} />
+        <article ref={articleRef} className="dictItem-BodyMesure">
           {props.TestComp ? (
             props.searchStatus === 'FINISH' &&
             props.searchResult &&
