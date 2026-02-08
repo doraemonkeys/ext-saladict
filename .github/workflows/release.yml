@@ -1,0 +1,90 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v7.21.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16.20.2'
+          cache: 'yarn'
+
+      - name: Create .env file
+        run: cp .env.example .env
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Download PDF.js
+        run: yarn pdf
+
+      - name: Build
+        run: yarn build
+
+      - name: Package Chrome extension
+        run: |
+          cd build/chrome
+          zip -r ../../saladict-chrome.zip .
+
+      - name: Package Firefox extension
+        run: |
+          cd build/firefox
+          zip -r ../../saladict-firefox.zip .
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get version from package.json
+        id: pkg
+        run: echo "version=$(node -p 'require("./package.json").version')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Saladict ${{ steps.tag.outputs.tag }}
+          body: |
+            ## Saladict ${{ steps.tag.outputs.tag }}
+
+            Fork of [crimx/ext-saladict](https://github.com/crimx/ext-saladict) with Chrome MV3 support.
+
+            ### Installation
+
+            **Chrome:**
+            1. Download `saladict-chrome.zip` and extract it
+            2. Open `chrome://extensions/`, enable Developer mode
+            3. Click "Load unpacked" and select the extracted folder
+
+            **Firefox:**
+            1. Download `saladict-firefox.zip`
+            2. Open `about:debugging#/runtime/this-firefox`
+            3. Click "Load Temporary Add-on" and select the zip file
+          files: |
+            saladict-chrome.zip
+            saladict-firefox.zip
+          draft: false
+          prerelease: false
