@@ -52,13 +52,18 @@ export const search: SearchFunction<
 
   let baiduResult: TranslateResult | undefined
 
-  try {
-    // Caiyun's lang detection is broken
-    baiduResult = await baiduTranslator.translate(text, sl, tl)
-    if (langcodes.includes(baiduResult.from)) {
-      sl = baiduResult.from
-    }
-  } catch (e) {}
+  // Caiyun's lang detection is broken, use Baidu for detection.
+  // Only call Baidu API when credentials are configured to avoid UNAUTHORIZED USER errors.
+  const baiduAppid = config.dictAuth.baidu.appid
+  const baiduKey = config.dictAuth.baidu.key
+  if (baiduAppid && baiduKey) {
+    try {
+      baiduResult = await baiduTranslator.translate(text, sl, tl, { appid: baiduAppid, key: baiduKey })
+      if (langcodes.includes(baiduResult.from)) {
+        sl = baiduResult.from
+      }
+    } catch (e) {}
+  }
 
   const caiYunToken = config.dictAuth.caiyun.token
   const caiYunConfig = caiYunToken ? { token: caiYunToken } : undefined
