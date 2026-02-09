@@ -13,8 +13,14 @@ import {
 } from '../helpers'
 import { DictConfigs } from '@/app-config'
 
+/** Sanitise text for use in the dict.youdao.com/w/ URL path.
+ *  Forward-slashes cause the server to split the path (it decodes %2F). */
+function sanitizeForURL(text: string): string {
+  return text.replace(/\s+/g, ' ').replace(/\//g, ' ')
+}
+
 export const getSrcPage: GetSrcPageFunction = text =>
-  'https://dict.youdao.com/w/' + encodeURIComponent(text.replace(/\s+/g, ' '))
+  'https://dict.youdao.com/w/' + encodeURIComponent(sanitizeForURL(text))
 
 const HOST = 'http://www.youdao.com'
 
@@ -57,7 +63,7 @@ export const search: SearchFunction<YoudaoResult> = async (
   const transform = await getChsToChz(config.langCode)
 
   return fetchDirtyDOM(
-    'https://dict.youdao.com/w/' + encodeURIComponent(text.replace(/\s+/g, ' '))
+    'https://dict.youdao.com/w/' + encodeURIComponent(sanitizeForURL(text))
   )
     .catch(handleNetWorkError)
     .then(doc => checkResult(doc, options, transform))
@@ -192,7 +198,9 @@ function handleDOM(
     })
   }
 
-  if (options.translation) {
+  if (options.translation || !result.title) {
+    // Always extract machine translation when there is no dictionary match
+    // (i.e. long text / sentences), so we can fall back to it.
     result.translation = getInnerHTML(HOST, doc, {
       selector: '#fanyiToggle .trans-container',
       transform
