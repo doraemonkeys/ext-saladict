@@ -117,16 +117,22 @@ export const search: SearchFunction<MojidictResult> = async (
     return handleNoResult()
   }
 
-  const {
-    data: { result: wordResult }
-  }: AxiosResponse<{ result: FetchWordResult }> = await axios({
-    method: 'post',
-    url: 'https://api.mojidict.com/parse/functions/fetchWord_v2',
-    headers: {
-      'content-type': 'text/plain'
-    },
-    data: requestPayload({ wordId: tarId })
-  })
+  let wordResult: FetchWordResult | undefined
+  try {
+    const {
+      data: { result }
+    }: AxiosResponse<{ result: FetchWordResult }> = await axios({
+      method: 'post',
+      url: 'https://api.mojidict.com/parse/functions/fetchWord_v2',
+      headers: {
+        'content-type': 'text/plain'
+      },
+      data: requestPayload({ wordId: tarId })
+    })
+    wordResult = result
+  } catch (e) {
+    return handleNetWorkError()
+  }
 
   const result: MojidictResult = {}
 

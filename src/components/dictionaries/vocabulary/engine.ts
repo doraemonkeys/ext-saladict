@@ -9,7 +9,7 @@ import {
 } from '../helpers'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `https://www.vocabulary.com/dictionary/${text}`
+  return `https://www.vocabulary.com/dictionary/${encodeURIComponent(text)}`
 }
 
 export interface VocabularyResult {

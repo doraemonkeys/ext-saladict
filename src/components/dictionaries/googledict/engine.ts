@@ -70,8 +70,8 @@ export const search: SearchFunction<GoogleDictResult> = async (
         if (el) {
           el.innerHTML = innerHTML
         }
-      } catch (e) {
-        // ignore
+      } catch {
+        /* querySelector may throw on unusual IDs — safe to skip */
       }
     })
 
@@ -142,8 +142,8 @@ export const search: SearchFunction<GoogleDictResult> = async (
           if (el) {
             el.setAttribute('src', src)
           }
-        } catch (e) {
-          // ignore
+        } catch {
+          /* querySelector may throw on unusual IDs — safe to skip */
         }
       })
 
@@ -194,8 +194,8 @@ function extractImg(text: string): Array<{ id: string; src: string }> {
     try {
       const json = JSON.parse(`{${kvPairMatch[1]}}`)
       return Object.keys(json).map(key => ({ id: key, src: json[key] }))
-    } catch (e) {
-      // ignore
+    } catch {
+      /* malformed JSON from page script — safe to skip */
     }
   }
   return []

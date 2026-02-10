@@ -13,7 +13,7 @@ import {
 } from '../helpers'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `https://www.weblio.jp/content/${text}`
+  return `https://www.weblio.jp/content/${encodeURIComponent(text)}`
 }
 
 const HOST = 'https://www.weblio.jp'

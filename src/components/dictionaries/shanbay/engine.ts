@@ -14,7 +14,7 @@ import axios from 'axios'
 import { stripScriptTags } from '../helpers'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `https://www.shanbay.com/bdc/mobile/preview/word?word=${text}`
+  return `https://www.shanbay.com/bdc/mobile/preview/word?word=${encodeURIComponent(text)}`
 }
 
 const HOST = 'http://www.shanbay.com'
@@ -84,6 +84,7 @@ function loadSentences(id: string) {
       }
       return []
     })
+    .catch(() => [])
 }
 
 async function handleDOM(

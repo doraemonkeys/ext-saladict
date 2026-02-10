@@ -50,26 +50,22 @@ export const search: SearchFunction<
   const key = config.dictAuth.youdaotrans.key
   const translatorConfig = appKey && key ? { appKey, key } : undefined
 
-  try {
-    const result = await translator.translate(text, sl, tl, translatorConfig)
-    return machineResult(
-      {
-        result: {
-          id: 'youdaotrans',
-          sl: result.from,
-          tl: result.to,
-          slInitial: profile.dicts.all.youdaotrans.options.slInitial,
-          searchText: result.origin,
-          trans: result.trans
-        },
-        audio: {
-          py: result.trans.tts,
-          us: result.trans.tts
-        }
+  const result = await translator.translate(text, sl, tl, translatorConfig)
+  return machineResult(
+    {
+      result: {
+        id: 'youdaotrans',
+        sl: result.from,
+        tl: result.to,
+        slInitial: profile.dicts.all.youdaotrans.options.slInitial,
+        searchText: result.origin,
+        trans: result.trans
       },
-      translator.getSupportLanguages()
-    )
-  } catch (e) {
-    throw e
-  }
+      audio: {
+        py: result.trans.tts,
+        us: result.trans.tts
+      }
+    },
+    translator.getSupportLanguages()
+  )
 }

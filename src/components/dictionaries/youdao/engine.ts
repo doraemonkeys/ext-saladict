@@ -77,15 +77,15 @@ function checkResult(
   const $typo = doc.querySelector('.error-typo')
   if (!$typo) {
     return handleDOM(doc, options, transform)
-  } else if (options.related) {
-    return {
-      result: {
-        type: 'related',
-        list: getInnerHTML(HOST, $typo, { transform })
-      }
+  }
+  // Typo suggestions are the only useful content when main results are empty —
+  // show them unconditionally (options.related only gates *supplementary* data).
+  return {
+    result: {
+      type: 'related',
+      list: getInnerHTML(HOST, $typo, { transform })
     }
   }
-  return handleNoResult()
 }
 
 function handleDOM(

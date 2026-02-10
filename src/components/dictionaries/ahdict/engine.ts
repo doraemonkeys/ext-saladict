@@ -11,7 +11,7 @@ import {
 } from '../helpers'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `https://ahdictionary.com/word/search.html?q=${text}`
+  return `https://ahdictionary.com/word/search.html?q=${encodeURIComponent(text)}`
 }
 
 const HOST = 'https://ahdictionary.com'

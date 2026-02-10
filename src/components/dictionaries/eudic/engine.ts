@@ -9,7 +9,7 @@ import {
 } from '../helpers'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `https://dict.eudic.net/dicts/en/${text}`
+  return `https://dict.eudic.net/dicts/en/${encodeURIComponent(text)}`
 }
 
 interface EudicResultItem {

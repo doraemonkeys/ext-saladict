@@ -101,10 +101,10 @@ export const search: SearchFunction<BingResult> = (
         return handleMachineResult(doc, transform)
       }
 
-      if (bingConfig.options.related) {
-        if (doc.querySelector('.client_do_you_mean_title_bar')) {
-          return handleRelatedResult(doc, bingConfig, transform)
-        }
+      // "Did you mean" suggestions are the only useful content when lex/machine
+      // results are empty — show them unconditionally.
+      if (doc.querySelector('.client_do_you_mean_title_bar')) {
+        return handleRelatedResult(doc, bingConfig, transform)
       }
 
       return handleNoResult<DictSearchResult<BingResult>>()

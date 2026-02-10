@@ -82,7 +82,10 @@ async function checkResult(
 ): Promise<MacmillanSearchResult> {
   if (doc.querySelector('.senses')) {
     return handleDOM(doc)
-  } else if (options.related) {
+  }
+  // Alternatives are the only useful content when main results are empty —
+  // show them unconditionally (options.related only gates supplementary data).
+  {
     const alternatives = [
       ...doc.querySelectorAll<HTMLAnchorElement>('.display-list li a')
     ].map($a => ({

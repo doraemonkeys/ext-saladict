@@ -45,7 +45,7 @@ export const search: SearchFunction<
   SogouResult,
   MachineTranslatePayload<SogouLanguage>
 > = async (rawText, config, profile, payload) => {
-  if (!config.dictAuth.sogou.pid) {
+  if (!config.dictAuth.sogou.pid || !config.dictAuth.sogou.key) {
     return machineResult(
       {
         result: {
@@ -77,26 +77,22 @@ export const search: SearchFunction<
     key: config.dictAuth.sogou.key
   }
 
-  try {
-    const result = await translator.translate(text, sl, tl, translatorConfig)
-    return machineResult(
-      {
-        result: {
-          id: 'sogou',
-          sl: result.from,
-          tl: result.to,
-          slInitial: profile.dicts.all.sogou.options.slInitial,
-          searchText: result.origin,
-          trans: result.trans
-        },
-        audio: {
-          py: result.trans.tts,
-          us: result.trans.tts
-        }
+  const result = await translator.translate(text, sl, tl, translatorConfig)
+  return machineResult(
+    {
+      result: {
+        id: 'sogou',
+        sl: result.from,
+        tl: result.to,
+        slInitial: profile.dicts.all.sogou.options.slInitial,
+        searchText: result.origin,
+        trans: result.trans
       },
-      translator.getSupportLanguages()
-    )
-  } catch (e) {
-    throw e
-  }
+      audio: {
+        py: result.trans.tts,
+        us: result.trans.tts
+      }
+    },
+    translator.getSupportLanguages()
+  )
 }

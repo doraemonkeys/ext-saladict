@@ -105,16 +105,15 @@ function handleDOM(
 
   const $suggests = doc.querySelector('.word-suggestions')
   if ($suggests) {
-    if (options.related) {
-      return {
-        result: {
-          type: 'related',
-          langCode,
-          content: getInnerHTML(HOST, $suggests)
-        }
+    // Suggestions are the only useful content when the word is not found —
+    // show them unconditionally (options.related only gates supplementary data).
+    return {
+      result: {
+        type: 'related',
+        langCode,
+        content: getInnerHTML(HOST, $suggests)
       }
     }
-    return wrapNoResult(langCode)
   }
 
   let header = ''

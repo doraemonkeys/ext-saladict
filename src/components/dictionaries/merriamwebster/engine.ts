@@ -6,7 +6,7 @@ import {
 } from '../helpers'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `https://www.merriam-webster.com/dictionary/${text}`
+  return `https://www.merriam-webster.com/dictionary/${encodeURIComponent(text)}`
 }
 
 export interface Meaning {

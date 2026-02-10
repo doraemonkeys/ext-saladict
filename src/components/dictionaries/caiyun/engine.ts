@@ -62,44 +62,43 @@ export const search: SearchFunction<
       if (langcodes.includes(baiduResult.from)) {
         sl = baiduResult.from
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Caiyun: Baidu language detection failed, using default', e)
+    }
   }
 
   const caiYunToken = config.dictAuth.caiyun.token
   const caiYunConfig = caiYunToken ? { token: caiYunToken } : undefined
 
+  const result = await translator.translate(text, sl, tl, caiYunConfig)
+  // TTS is optional — don't let TTS failure kill a successful translation
   try {
-    const result = await translator.translate(text, sl, tl, caiYunConfig)
-    // TTS is optional — don't let TTS failure kill a successful translation
-    try {
-      result.origin.tts = await baiduTranslator.textToSpeech(
-        result.origin.paragraphs.join('\n'),
-        result.from
-      )
-      result.trans.tts = await baiduTranslator.textToSpeech(
-        result.trans.paragraphs.join('\n'),
-        result.to
-      )
-    } catch (ttsErr) {
-    }
-    return machineResult(
-      {
-        result: {
-          id: 'caiyun',
-          sl: result.from,
-          tl: result.to,
-          slInitial: profile.dicts.all.caiyun.options.slInitial,
-          searchText: result.origin,
-          trans: result.trans
-        },
-        audio: {
-          py: result.trans.tts,
-          us: result.trans.tts
-        }
-      },
-      langcodes
+    result.origin.tts = await baiduTranslator.textToSpeech(
+      result.origin.paragraphs.join('\n'),
+      result.from
     )
-  } catch (e) {
-    throw e
+    result.trans.tts = await baiduTranslator.textToSpeech(
+      result.trans.paragraphs.join('\n'),
+      result.to
+    )
+  } catch {
+    /* TTS is optional — failure is non-fatal */
   }
+  return machineResult(
+    {
+      result: {
+        id: 'caiyun',
+        sl: result.from,
+        tl: result.to,
+        slInitial: profile.dicts.all.caiyun.options.slInitial,
+        searchText: result.origin,
+        trans: result.trans
+      },
+      audio: {
+        py: result.trans.tts,
+        us: result.trans.tts
+      }
+    },
+    langcodes
+  )
 }

@@ -3,7 +3,7 @@ import { moedictSearch, GuoYuResult } from '../guoyu/engine'
 
 export const getSrcPage: GetSrcPageFunction = async text => {
   const chsToChz = await getChsToChz()
-  return `https://www.moedict.tw/~${chsToChz(text)}`
+  return `https://www.moedict.tw/~${encodeURIComponent(chsToChz(text))}`
 }
 
 export type LiangAnResult = GuoYuResult

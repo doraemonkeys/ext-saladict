@@ -12,7 +12,7 @@ import { Profile } from '@/app-config/profiles'
 
 export const getSrcPage: GetSrcPageFunction = async text => {
   const transform = await getChsToChz()
-  return `https://www.moedict.tw/${transform(text)}`
+  return `https://www.moedict.tw/${encodeURIComponent(transform(text))}`
 }
 
 /** @see https://github.com/audreyt/moedict-webkit#4-國語-a */

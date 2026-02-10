@@ -9,7 +9,9 @@ export async function getWordOfTheDay(): Promise<string> {
         getWebsterWordOfTheDay(),
         getDictionaryWordOfTheDay()
       ])
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Word of the Day: all sources failed, using fallback', e)
+    }
   }
   return 'salad'
 }

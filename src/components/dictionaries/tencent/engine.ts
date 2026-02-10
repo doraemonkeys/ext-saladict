@@ -78,11 +78,12 @@ export const search: SearchFunction<
     )
   }
 
+  const result = await translator.translate(text, sl, tl, translatorConfig)
+  // Tencent needs extra api credits for TTS which does
+  // not fit in the current Saladict architecture.
+  // Use Baidu instead.
+  // TTS is optional — don't let TTS failure kill a successful translation
   try {
-    const result = await translator.translate(text, sl, tl, translatorConfig)
-    // Tencent needs extra api credits for TTS which does
-    // not fit in the current Saladict architecture.
-    // Use Baidu instead.
     const baidu = getBaiduTranslator()
     result.origin.tts = await baidu.textToSpeech(
       result.origin.paragraphs.join('\n'),
@@ -92,25 +93,23 @@ export const search: SearchFunction<
       result.trans.paragraphs.join('\n'),
       result.to
     )
+  } catch (ttsErr) {}
 
-    return machineResult(
-      {
-        result: {
-          id: 'tencent',
-          sl: result.from,
-          tl: result.to,
-          slInitial: profile.dicts.all.tencent.options.slInitial,
-          searchText: result.origin,
-          trans: result.trans
-        },
-        audio: {
-          py: result.trans.tts,
-          us: result.trans.tts
-        }
+  return machineResult(
+    {
+      result: {
+        id: 'tencent',
+        sl: result.from,
+        tl: result.to,
+        slInitial: profile.dicts.all.tencent.options.slInitial,
+        searchText: result.origin,
+        trans: result.trans
       },
-      translator.getSupportLanguages()
-    )
-  } catch (e) {
-    throw e
-  }
+      audio: {
+        py: result.trans.tts,
+        us: result.trans.tts
+      }
+    },
+    translator.getSupportLanguages()
+  )
 }

@@ -12,7 +12,7 @@ import {
 } from '../helpers'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `https://www.oxfordlearnersdictionaries.com/search/english/direct/?q=${text}`
+  return `https://www.oxfordlearnersdictionaries.com/search/english/direct/?q=${encodeURIComponent(text)}`
 }
 
 const HOST = 'https://www.oxfordlearnersdictionaries.com'

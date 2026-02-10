@@ -154,7 +154,9 @@ function handleDOM(
     }
   }
 
-  if (result.length <= 0 && options.related) {
+  // Spelling suggestions are the only useful content when main results are
+  // empty — show them unconditionally (options.related only gates supplementary data).
+  if (result.length <= 0) {
     const $link = doc.querySelector('link[rel=canonical]')
     if (
       $link &&

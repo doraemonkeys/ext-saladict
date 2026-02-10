@@ -11,10 +11,9 @@ import {
 import { DictConfigs } from '@/app-config'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `http://www.learnersdictionary.com/definition/${text
-    .trim()
-    .split(/\s+/)
-    .join('-')}`
+  return `http://www.learnersdictionary.com/definition/${encodeURIComponent(
+    text.trim().split(/\s+/).join('-')
+  )}`
 }
 
 const HOST = 'http://www.learnersdictionary.com'
@@ -75,7 +74,7 @@ function checkResult(
   )
   if (!$alternative) {
     return handleDOM(doc, options)
-  } else if (options.related) {
+  } else {
     return {
       result: {
         type: 'related',
@@ -83,7 +82,6 @@ function checkResult(
       }
     }
   }
-  return handleNoResult()
 }
 
 function handleDOM(

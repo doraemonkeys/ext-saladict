@@ -14,10 +14,9 @@ import { DictConfigs } from '@/app-config'
 import { getStaticSpeaker } from '@/components/Speaker'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `https://www.ldoceonline.com/dictionary/${text
-    .trim()
-    .split(/\s+/)
-    .join('-')}`
+  return `https://www.ldoceonline.com/dictionary/${encodeURIComponent(
+    text.trim().split(/\s+/).join('-')
+  )}`
 }
 
 const HOST = 'https://www.ldoceonline.com'
@@ -93,10 +92,9 @@ function handleDOM(
 ): LongmanSearchResult | Promise<LongmanSearchResult> {
   if (doc.querySelector('.dictentry')) {
     return handleDOMLex(doc, options)
-  } else if (options.related) {
+  } else {
     return handleDOMRelated(doc)
   }
-  return handleNoResult()
 }
 
 function handleDOMLex(

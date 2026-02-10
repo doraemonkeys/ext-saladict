@@ -16,7 +16,9 @@ import {
 import { getStaticSpeaker } from '@/components/Speaker'
 
 const getSrc = (text: string) =>
-  `https://www.lexico.com/definition/${text.trim().replace(/\s+/g, '_')}`
+  `https://www.lexico.com/definition/${encodeURIComponent(
+    text.trim().replace(/\s+/g, '_')
+  )}`
 
 export const getSrcPage: GetSrcPageFunction = getSrc
 
@@ -50,20 +52,18 @@ export const search: SearchFunction<LexicoResult> = (
     .then(doc => {
       const $noResult = doc.querySelector('.no-exact-matches')
       if ($noResult) {
-        if (options.related) {
-          const $similar = $noResult.querySelectorAll<HTMLAnchorElement>(
-            '.similar-results .search-results li a'
-          )
-          if ($similar.length > 0) {
-            const result: LexicoResultRelated = {
-              type: 'related',
-              list: [...$similar].map($a => ({
-                href: getFullLink(HOST, $a, 'href'),
-                text: getText($a)
-              }))
-            }
-            return { result }
+        const $similar = $noResult.querySelectorAll<HTMLAnchorElement>(
+          '.similar-results .search-results li a'
+        )
+        if ($similar.length > 0) {
+          const result: LexicoResultRelated = {
+            type: 'related',
+            list: [...$similar].map($a => ({
+              href: getFullLink(HOST, $a, 'href'),
+              text: getText($a)
+            }))
           }
+          return { result }
         }
         return handleNoResult()
       }

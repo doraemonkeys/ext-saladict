@@ -59,26 +59,39 @@ export const search: SearchFunction<
   const key = config.dictAuth.baidu.key
   const translatorConfig = appid && key ? { appid, key } : undefined
 
-  try {
-    const result = await translator.translate(text, sl, tl, translatorConfig)
+  if (!translatorConfig && !(process.env.BAIDU_APPID && process.env.BAIDU_KEY)) {
     return machineResult(
       {
         result: {
+          requireCredential: true,
           id: 'baidu',
-          slInitial: profile.dicts.all.baidu.options.slInitial,
-          sl: result.from,
-          tl: result.to,
-          searchText: result.origin,
-          trans: result.trans
-        },
-        audio: {
-          py: result.trans.tts,
-          us: result.trans.tts
+          sl: 'auto',
+          tl: 'auto',
+          slInitial: 'hide',
+          searchText: { paragraphs: [''] },
+          trans: { paragraphs: [''] }
         }
       },
-      translator.getSupportLanguages()
+      []
     )
-  } catch (e) {
-    throw e
   }
+
+  const result = await translator.translate(text, sl, tl, translatorConfig)
+  return machineResult(
+    {
+      result: {
+        id: 'baidu',
+        slInitial: profile.dicts.all.baidu.options.slInitial,
+        sl: result.from,
+        tl: result.to,
+        searchText: result.origin,
+        trans: result.trans
+      },
+      audio: {
+        py: result.trans.tts,
+        us: result.trans.tts
+      }
+    },
+    translator.getSupportLanguages()
+  )
 }

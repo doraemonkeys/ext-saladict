@@ -13,7 +13,7 @@ import {
 import axios from 'axios'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `http://www.urbandictionary.com/define.php?term=${text}`
+  return `http://www.urbandictionary.com/define.php?term=${encodeURIComponent(text)}`
 }
 
 const HOST = 'https://www.urbandictionary.com'
@@ -150,7 +150,7 @@ async function handleDOM(
           audio.us = pron
         }
       } catch (error) {
-        /* ignore */
+        console.error(error)
       }
     }
 

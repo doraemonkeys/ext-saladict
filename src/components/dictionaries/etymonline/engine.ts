@@ -14,7 +14,7 @@ import {
 } from '../helpers'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `http://www.etymonline.com/search?q=${text}`
+  return `http://www.etymonline.com/search?q=${encodeURIComponent(text)}`
 }
 
 const HOST = 'https://www.etymonline.com'

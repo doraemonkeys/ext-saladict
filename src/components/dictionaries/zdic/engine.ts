@@ -11,7 +11,7 @@ import {
 import { getStaticSpeaker } from '@/components/Speaker'
 
 export const getSrcPage: GetSrcPageFunction = text => {
-  return `https://www.zdic.net/hans/${text}`
+  return `https://www.zdic.net/hans/${encodeURIComponent(text)}`
 }
 
 const HOST = 'https://www.zdic.net'
