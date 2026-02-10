@@ -46,7 +46,7 @@ export async function openPDF(url?: string, force?: boolean) {
       if (curURL.startsWith(pdfURL)) {
         if (getAppConfig().pdfStandalone) {
           if (tabs[0].id != null) {
-            await browser.tabs.remove(tabs[0].id)
+            await browser.tabs.remove(tabs[0].id).catch(() => {})
           }
           pdfURL = curURL
         } else {
@@ -130,13 +130,17 @@ function otherPdfListener({
   // MV3: non-blocking — use async tabs.update instead of returning redirectUrl
   if (tabId !== -1 && config.pdfStandalone === 'always') {
     // Stop current tab and open standalone window
-    chrome.tabs.update(tabId, { url: 'about:blank' })
+    chrome.tabs.update(tabId, { url: 'about:blank' }, () => {
+      void chrome.runtime.lastError
+    })
     openPDFStandalone(redirectUrl)
     return
   }
 
   if (tabId !== -1) {
-    chrome.tabs.update(tabId, { url: redirectUrl })
+    chrome.tabs.update(tabId, { url: redirectUrl }, () => {
+      void chrome.runtime.lastError
+    })
   }
 }
 
@@ -177,13 +181,17 @@ function httpPdfListener({
       // MV3: non-blocking — use async tabs.update instead of returning redirectUrl
       if (tabId !== -1 && config.pdfStandalone === 'always') {
         // Stop current tab and open standalone window
-        chrome.tabs.update(tabId, { url: 'about:blank' })
+        chrome.tabs.update(tabId, { url: 'about:blank' }, () => {
+          void chrome.runtime.lastError
+        })
         openPDFStandalone(redirectUrl)
         return
       }
 
       if (tabId !== -1) {
-        chrome.tabs.update(tabId, { url: redirectUrl })
+        chrome.tabs.update(tabId, { url: redirectUrl }, () => {
+          void chrome.runtime.lastError
+        })
       }
     }
   }

@@ -93,25 +93,22 @@ export function initBadge() {
 
 function setOff(tabId: number) {
   setIcon(true, tabId)
-  browser.action.setTitle({
-    title: getLocale().app.off,
-    tabId
+  chrome.action.setTitle({ title: getLocale().app.off, tabId }, () => {
+    void chrome.runtime.lastError
   })
 }
 
 function setTempOff(tabId: number) {
   setIcon(true, tabId)
-  browser.action.setTitle({
-    title: getLocale().app.tempOff,
-    tabId
+  chrome.action.setTitle({ title: getLocale().app.tempOff, tabId }, () => {
+    void chrome.runtime.lastError
   })
 }
 
 function setUnsupported(tabId: number) {
   setIcon(true, tabId)
-  browser.action.setTitle({
-    title: getLocale().app.unsupported,
-    tabId
+  chrome.action.setTitle({ title: getLocale().app.unsupported, tabId }, () => {
+    void chrome.runtime.lastError
   })
 }
 
@@ -122,7 +119,7 @@ function setDefault(tabId: number) {
 }
 
 function setIcon(gray: boolean, tabId: number) {
-  browser.action.setIcon({
+  chrome.action.setIcon({
     tabId,
     path: gray
       ? {
@@ -141,5 +138,7 @@ function setIcon(gray: boolean, tabId: number) {
           48: 'assets/icon-48.png',
           128: 'assets/icon-128.png'
         }
+  }, () => {
+    void chrome.runtime.lastError
   })
 }
