@@ -97,3 +97,5 @@ test/**/response
 
 
 **/.DS_Store
+
+.claude
